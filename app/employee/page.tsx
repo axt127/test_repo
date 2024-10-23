@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -21,15 +20,6 @@ export default function EmployeeHomepage() {
     { warehouseNumber: "7", poNumber: "8", mrNumber: "9" },
   ])
 
-  const addReceipt = () => {
-    const newReceipt = {
-      warehouseNumber: (receipts.length + 1).toString(),
-      poNumber: (receipts.length + 2).toString(),
-      mrNumber: (receipts.length + 3).toString(),
-    }
-    setReceipts([...receipts, newReceipt])
-  }
-
   const handleLogout = () => {
     // Here you would typically clear any authentication tokens or user data
     // For this example, we'll just redirect to the login page
@@ -40,20 +30,6 @@ export default function EmployeeHomepage() {
     <div className="container mx-auto px-4 py-8 relative min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-center">Employee Homepage</h1>
       
-      <div className="mb-8">
-        <div className="flex flex-wrap justify-center gap-4 mb-6">
-          <Link href="/warehouse-receipt">
-            <Button variant="outline">Warehouse Receipt</Button>
-          </Link>
-          <Link href="/purchase-order">
-            <Button variant="outline">Purchase Order</Button>
-          </Link>
-          <Link href="/material-receipt">
-            <Button variant="outline">Material Receipt</Button>
-          </Link>
-        </div>
-      </div>
-
       <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
         <Table>
           <TableHeader>
@@ -75,10 +51,7 @@ export default function EmployeeHomepage() {
         </Table>
       </div>
       
-      <div className="flex justify-between items-center">
-        <Button onClick={addReceipt}>
-          <Plus className="mr-2 h-4 w-4" /> Add Receipt
-        </Button>
+      <div className="absolute bottom-4 right-4">
         <Button 
           onClick={handleLogout}
           className="flex items-center"

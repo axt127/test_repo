@@ -44,7 +44,7 @@ export default function ClientSearch() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Search Client Purchase Orders</h1>
+      <h1 className="text-3xl font-bold mb-6">Search Purchase Orders</h1>
       <form onSubmit={handleSearch} className="space-y-4">
         <div>
           <label htmlFor="clientName" className="block text-sm font-medium text-gray-700">Client Name</label>

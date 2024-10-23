@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 
-export default function WarehouseSearch() {
+export default function MaterialReceiptSearch() {
   const [searchData, setSearchData] = useState({
     warehouseNumber: '',
     poNumber: ''
@@ -44,7 +44,7 @@ export default function WarehouseSearch() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Search Warehouse Receipts</h1>
+      <h1 className="text-3xl font-bold mb-6">Search Material Receipts</h1>
       <form onSubmit={handleSearch} className="space-y-4">
         <div>
           <label htmlFor="warehouseNumber" className="block text-sm font-medium text-gray-700">Warehouse Number</label>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Edit, Plus, LogOut } from 'lucide-react'
+import { Edit, LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -21,15 +21,6 @@ export default function Homepage() {
     { warehouseNumber: "7", poNumber: "8", mrNumber: "9" },
   ])
 
-  const addReceipt = () => {
-    const newReceipt = {
-      warehouseNumber: (receipts.length + 1).toString(),
-      poNumber: (receipts.length + 2).toString(),
-      mrNumber: (receipts.length + 3).toString(),
-    }
-    setReceipts([...receipts, newReceipt])
-  }
-
   const handleLogout = () => {
     // Here you would typically clear any authentication tokens or user data
     // For this example, we'll just redirect to the login page
@@ -38,7 +29,7 @@ export default function Homepage() {
 
   return (
     <div className="container mx-auto px-4 py-8 relative min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-center">Homepage</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">Client Homepage</h1>
       
       <div className="mb-8">
         <div className="flex flex-wrap justify-center gap-4 mb-6">
@@ -93,10 +84,7 @@ export default function Homepage() {
         </Table>
       </div>
       
-      <div className="flex justify-between items-center">
-        <Button onClick={addReceipt}>
-          <Plus className="mr-2 h-4 w-4" /> Add Receipt
-        </Button>
+      <div className="absolute bottom-4 right-4">
         <Button 
           onClick={handleLogout}
           className="flex items-center"
