@@ -4,7 +4,12 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Button } from "@/components/ui/button"
+import axios from 'axios'
+
+interface Notification {
+  type: 'success' | 'error';
+  message: string;
+}
 
 export function Navigation() {
   return (
@@ -17,16 +22,16 @@ export function Navigation() {
           </div>
           <div className="flex justify-center space-x-4">
             <Link href="/homepage">
-              <Button variant="outline">Home</Button>
+              <button className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Home</button>
             </Link>
             <Link href="/warehouse-receipt">
-              <Button variant="outline">Warehouse Receipt</Button>
+              <button className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Warehouse Receipt</button>
             </Link>
             <Link href="/purchase-order">
-              <Button variant="outline">Purchase Order</Button>
+              <button className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Purchase Order</button>
             </Link>
             <Link href="/material-receipt">
-              <Button variant="outline">Material Receipt</Button>
+              <button className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Material Receipt</button>
             </Link>
           </div>
           <div className="w-[50px]"></div>
@@ -38,18 +43,22 @@ export function Navigation() {
 
 export default function WarehouseReceipt() {
   const router = useRouter()
+  const [notification, setNotification] = useState<Notification | null>(null)
   const [formData, setFormData] = useState({
-    client: '',
-    po: '',
-    carrier: '',
-    trackingNumber: '',
-    hazmat: false,
-    hazmatCode: '',
-    notes: '',
+    wrNumber: 'WR-011',
+    client: 'Marcel',
+    carrier: 'FedEx',
+    trackingNumber: '123456789ABC',
+    receivedBy: 'John Doe',
+    hazmat: 'yes',
+    hazmatCode: 'HZ123',
+    notes: 'Fragile package, handle with care.',
+    po: 'PO987654',
   })
 
   const [tableData, setTableData] = useState([
-    { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
+    { number: '1', type: 'Pallet', length: '5', width: '5', height: '5', weight: '25', location: 'B1' },
+    { number: '2', type: 'Crate', length: '10', width: '20', height: '15', weight: '200', location: 'B2' }
   ])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -58,7 +67,7 @@ export default function WarehouseReceipt() {
   }
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, hazmat: e.target.checked }))
+    setFormData(prev => ({ ...prev, hazmat: e.target.checked ? 'yes' : 'no' }))
   }
 
   const handleTableInputChange = (index: number, field: string, value: string) => {
@@ -69,22 +78,84 @@ export default function WarehouseReceipt() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form Data:', formData)
-    console.log('Table Data:', tableData)
-    // Here you would typically send the data to your backend
-    await new Promise(resolve => setTimeout(resolve, 1000)) // Simulating API call
-    alert('Form submitted successfully!')
-    router.push('/homepage') // Redirect to homepage after submission
+    
+    const formattedData = [
+      [
+        formData.wrNumber,
+        formData.client,
+        formData.carrier,
+        formData.trackingNumber,
+        formData.receivedBy,
+        formData.hazmat,
+        formData.hazmatCode,
+        formData.notes,
+        formData.po
+      ],
+      ...tableData.map(item => [
+        item.number,
+        item.type,
+        Number(item.length),
+        Number(item.width),
+        Number(item.height),
+        item.location,
+        Number(item.weight)
+      ])
+    ]
+  
+    try {
+      console.log('Sending data:', JSON.stringify(formattedData, null, 2))
+      const response = await axios.post(
+        'https://i86t4jbtki.execute-api.us-east-1.amazonaws.com/prod/putWR',
+        formattedData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000, // 10 seconds timeout
+        }
+      )
+      console.log('Response:', response.data)
+      if (response.status === 200 && response.data.success) {
+        setNotification({ type: 'success', message: 'Warehouse receipt submitted successfully!' })
+        setTimeout(() => {
+          router.push('/homepage')
+        }, 2000)
+      } else {
+        throw new Error('Unexpected response from server')
+      }
+    } catch (error) {
+      console.error('Error submitting warehouse receipt:', error)
+      let errorMessage = 'Failed to submit warehouse receipt. Please try again.'
+      if (axios.isAxiosError(error)) {
+        console.error('Response data:', error.response?.data)
+        console.error('Response status:', error.response?.status)
+        console.error('Response headers:', error.response?.headers)
+        if (error.response) {
+          errorMessage = `Server error: ${error.response.status}. ${error.response.data.message || ''}`
+        } else if (error.request) {
+          errorMessage = 'No response received from server. Please check your internet connection.'
+        } else {
+          errorMessage = `Error: ${error.message}`
+        }
+      }
+      setNotification({ type: 'error', message: errorMessage })
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-100">
       <Navigation />
       <div className="container mx-auto p-4">
+        {notification && (
+          <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {notification.message}
+          </div>
+        )}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Warehouse Receipt Form</h1>
         </div>
         <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          {/* Form fields remain unchanged */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="client">
@@ -144,13 +215,13 @@ export default function WarehouseReceipt() {
               <input
                 type="checkbox"
                 className="form-checkbox"
-                checked={formData.hazmat}
+                checked={formData.hazmat === 'yes'}
                 onChange={handleCheckboxChange}
               />
               <span className="ml-2">Hazmat</span>
             </label>
           </div>
-          {formData.hazmat && (
+          {formData.hazmat === 'yes' && (
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="hazmatCode">
                 Hazmat Code
@@ -207,9 +278,12 @@ export default function WarehouseReceipt() {
             </tbody>
           </table>
           <div className="flex items-center justify-end">
-            <Button type="submit">
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
               Submit
-            </Button>
+            </button>
           </div>
         </form>
       </div>

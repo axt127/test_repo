@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function WarehouseSearch() {
+  const [warehouseNumbers, setWarehouseNumbers] = useState<string[]>([])
   const [searchData, setSearchData] = useState({
     warehouseNumber: '',
     poNumber: ''
@@ -13,9 +15,31 @@ export default function WarehouseSearch() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    const fetchWarehouseNumbers = async () => {
+      try {
+        const response = await fetch('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/warehouse-receipts')
+        if (!response.ok) {
+          throw new Error('Failed to fetch warehouse numbers')
+        }
+        const data = await response.json()
+        setWarehouseNumbers(data)
+      } catch (error) {
+        console.error('Error fetching warehouse numbers:', error)
+        setError('Failed to load warehouse numbers. Please try again later.')
+      }
+    }
+
+    fetchWarehouseNumbers()
+  }, [])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setSearchData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleWarehouseSelect = (value: string) => {
+    setSearchData(prev => ({ ...prev, warehouseNumber: value }))
   }
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -48,15 +72,18 @@ export default function WarehouseSearch() {
       <form onSubmit={handleSearch} className="space-y-4">
         <div>
           <label htmlFor="warehouseNumber" className="block text-sm font-medium text-gray-700">Warehouse Number</label>
-          <input
-            type="text"
-            id="warehouseNumber"
-            name="warehouseNumber"
-            value={searchData.warehouseNumber}
-            onChange={handleInputChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-            required
-          />
+          <Select onValueChange={handleWarehouseSelect} value={searchData.warehouseNumber}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a warehouse number" />
+            </SelectTrigger>
+            <SelectContent>
+              {warehouseNumbers.map((number) => (
+                <SelectItem key={number} value={number}>
+                  {number}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label htmlFor="poNumber" className="block text-sm font-medium text-gray-700">PO Number</label>
