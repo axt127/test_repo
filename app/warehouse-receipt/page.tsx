@@ -1,15 +1,54 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, KeyboardEvent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
+import { Button } from "@/components/ui/button"
 
 interface Notification {
   type: 'success' | 'error';
   message: string;
 }
+
+interface TableRow {
+  number: string;
+  type: string;
+  length: string;
+  width: string;
+  height: string;
+  weight: string;
+  location: string;
+}
+
+interface FormData {
+  wrNumber: string;
+  client: string;
+  carrier: string;
+  trackingNumber: string;
+  receivedBy: string;
+  hazmat: 'yes' | 'no';
+  hazmatCode: string;
+  notes: string;
+  po: string;
+}
+
+const initialFormData: FormData = {
+  wrNumber: '',
+  client: '',
+  carrier: '',
+  trackingNumber: '',
+  receivedBy: '',
+  hazmat: 'no',
+  hazmatCode: '',
+  notes: '',
+  po: '',
+}
+
+const initialTableData: TableRow[] = [
+  { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
+]
 
 function Navigation() {
   return (
@@ -45,24 +84,35 @@ export default function WarehouseReceipt() {
   const router = useRouter()
   const [notification, setNotification] = useState<Notification | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    // the code will not work until you fix this:
-    // put a check so it follows the format: 241023-1 in the wrNumber field
-    wrNumber: '', // have a way to auto generate the warehouse receipt int this format: 241023-1 24 = year, 10 = month, 23 = day, -1 = sequence number
-    client: '',
-    carrier: '',
-    trackingNumber: '',
-    receivedBy: '',
-    hazmat: 'no',
-    hazmatCode: '',
-    notes: '',
-    po: '',
-  })
-// this has to be populated with the data from the customer
-  const [tableData, setTableData] = useState([
-    { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' },
-    { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
-  ])
+  const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [tableData, setTableData] = useState<TableRow[]>(initialTableData)
+  const [lastSubmittedWR, setLastSubmittedWR] = useState<string>('')
+
+  useEffect(() => {
+    const storedLastWR = localStorage.getItem('lastSubmittedWR')
+    if (storedLastWR) {
+      setLastSubmittedWR(storedLastWR)
+    }
+    generateNewWRNumber(storedLastWR)
+  }, [])
+
+  const generateNewWRNumber = (lastWR: string | null) => {
+    const now = new Date()
+    const year = now.getFullYear().toString().slice(-2)
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    const day = now.getDate().toString().padStart(2, '0')
+    
+    let sequence = 1
+    if (lastWR) {
+      const [lastDate, lastSequence] = lastWR.split('-')
+      if (lastDate === `${year}${month}${day}`) {
+        sequence = parseInt(lastSequence, 10) + 1
+      }
+    }
+    
+    const newWRNumber = `${year}${month}${day}-${sequence.toString().padStart(3, '0')}`
+    setFormData(prev => ({ ...prev, wrNumber: newWRNumber }))
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -77,6 +127,28 @@ export default function WarehouseReceipt() {
     const newData = [...tableData]
     newData[index] = { ...newData[index], [field]: value }
     setTableData(newData)
+  }
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, rowIndex: number, fieldIndex: number) => {
+    if (e.key === 'Tab' && !e.shiftKey && rowIndex === tableData.length - 1 && fieldIndex === 6) {
+      e.preventDefault()
+      const newRow = { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
+      setTableData(prevData => [...prevData, newRow])
+      
+      // Use setTimeout to ensure the new row is rendered before focusing
+      setTimeout(() => {
+        const newRowFirstInput = document.querySelector(`tr:nth-child(${rowIndex + 2}) td:first-child input`) as HTMLInputElement
+        if (newRowFirstInput) {
+          newRowFirstInput.focus()
+        }
+      }, 0)
+    }
+  }
+
+
+  const resetForm = () => {
+    setFormData({ ...initialFormData, wrNumber: formData.wrNumber })
+    setTableData(initialTableData)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,10 +194,11 @@ export default function WarehouseReceipt() {
 
       if (response.status === 200) {
         setNotification({ type: 'success', message: 'Warehouse receipt submitted successfully!' })
-        // Optionally, reset form or redirect
-        // setFormData({ ... }) // Reset form
-        // router.push('/success-page') // Redirect
-      } else {
+        setLastSubmittedWR(formData.wrNumber)
+        localStorage.setItem('lastSubmittedWR', formData.wrNumber)
+        generateNewWRNumber(formData.wrNumber)
+        resetForm()
+        } else {
         throw new Error('Unexpected response from server')
       }
     } catch (error) {
@@ -157,9 +230,25 @@ export default function WarehouseReceipt() {
         )}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Warehouse Receipt Form</h1>
+          {lastSubmittedWR && (
+            <p className="text-sm text-gray-600">Last submitted WR: {lastSubmittedWR}</p>
+          )}
         </div>
         <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="wrNumber">
+                WR Number
+              </label>
+              <input
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="wrNumber"
+                type="text"
+                name="wrNumber"
+                value={formData.wrNumber}
+                readOnly
+              />
+            </div>
             <div>
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="client">
                 Client
@@ -212,6 +301,19 @@ export default function WarehouseReceipt() {
                 onChange={handleInputChange}
               />
             </div>
+            <div>
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="receivedBy">
+                Received By
+              </label>
+              <input
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="receivedBy"
+                type="text"
+                name="receivedBy"
+                value={formData.receivedBy}
+                onChange={handleInputChange}
+              />
+            </div>
           </div>
           <div className="mb-4">
             <label className="flex items-center">
@@ -251,40 +353,53 @@ export default function WarehouseReceipt() {
               onChange={handleInputChange}
             />
           </div>
-          <table className="w-full mb-4">
-            <thead>
-              <tr>
-                <th>Number</th>
-                <th>Type</th>
-                <th>Length</th>
-                <th>Width</th>
-                <th>Height</th>
-                <th>Weight</th>
-                <th>Location</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableData.map((row, index) => (
-                <tr key={index}>
-                  {Object.keys(row).map((key) => (
-                    <td key={key}>
-                      <input
-                        type="text"
-                        className="w-full p-1 border"
-                        value={row[key as keyof typeof row]}
-                        onChange={(e) => handleTableInputChange(index, key, e.target.value)}
-                      />
-                    </td>
-                  ))}
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-bold">Box Details</h2>
+              <Button 
+                onClick={() => setTableData(prevData => [...prevData, { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])} 
+                type="button"
+              >
+                Add Row
+              </Button>
+            </div>
+            <table className="w-full border-separate border-spacing-4">
+              <thead>
+                <tr>
+                  <th className="text-left pb-3 px-3 border-b">Number</th>
+                  <th className="text-left pb-3 px-3 border-b">Type</th>
+                  <th className="text-left pb-3 px-3 border-b">Length</th>
+                  <th className="text-left pb-3 px-3 border-b">Width</th>
+                  <th className="text-left pb-3 px-3 border-b">Height</th>
+                  <th className="text-left pb-3 px-3 border-b">Weight</th>
+                  <th className="text-left pb-3 px-3 border-b">Location</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tableData.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {Object.keys(row).map((key, fieldIndex) => (
+                      <td key={key}>
+                        <input
+                          type="text"
+                          className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none"
+                          value={row[key as keyof typeof row]}
+                          onChange={(e) => handleTableInputChange(rowIndex, key, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, rowIndex, fieldIndex)}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div className="flex items-center justify-end">
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isSubmitting ? 
+ 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
