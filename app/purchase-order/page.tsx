@@ -1,334 +1,266 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { Save, Plus, Trash2 } from 'lucide-react'
+import axios from 'axios'
 import { Button } from "@/components/ui/button"
-import { Trash2, Upload } from 'lucide-react'
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableRow, TableHeader } from "@/components/ui/table"
 
-function Navigation() {
-  return (
-    <nav className="bg-white shadow-sm mb-4">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-2">
-            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Express</span>
-          </div>
-          <div className="flex justify-center space-x-4">
-            <Link href="/homepage">
-              <Button variant="outline">Home</Button>
-            </Link>
-            <Link href="/warehouse-receipt">
-              <Button variant="outline">Warehouse Receipt</Button>
-            </Link>
-            <Link href="/purchase-order">
-              <Button variant="outline">Purchase Order</Button>
-            </Link>
-            <Link href="/material-receipt">
-              <Button variant="outline">Material Receipt</Button>
-            </Link>
-          </div>
-          <div className="w-[50px]"></div>
-        </div>
-      </div>
-    </nav>
-  )
+interface Item {
+  itemNumber: string
+  partNumber: string
+  description: string
+  quantity: number
+  costPerUnit: number
 }
 
 export default function PurchaseOrder() {
-  const router = useRouter()
-  const [savedData, setSavedData] = useState<any>(null)
-  const [formData, setFormData] = useState({
-    POnumber: '',
-    po: '',
-    orderDate: '',
-    carrier: '',
+  const [poInfo, setPOInfo] = useState({
+    poNumber: '',
+    client: '',
     destination: '',
-    shipmentType: '',
+    vendor: '',
+    shipVia: '',
+    date: '',
     notes: '',
   })
-  const [photo, setPhoto] = useState<File | null>(null)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
-  const [tableData, setTableData] = useState([
-    { itemNumber: '', partNumber: '', description: '', quantity: '', costPerUnit: '', totalCost: '' }
+  const [items, setItems] = useState<Item[]>([
+    { itemNumber: '1', partNumber: '', description: '', quantity: 0, costPerUnit: 0 }
   ])
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+  const lastRowRef = useRef<HTMLTableRowElement>(null)
+
+  const handlePOInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setPOInfo({ ...poInfo, [e.target.name]: e.target.value })
   }
 
-  const handleTableInputChange = (index: number, field: string, value: string) => {
-    const newData = [...tableData]
-    newData[index] = { ...newData[index], [field]: value }
-    
-    if (field === 'costPerUnit') {
-      const costPerUnit = parseFloat(value) || 0
-      newData[index].totalCost = costPerUnit.toFixed(2)
-    }
-    
-    setTableData([...newData])
+  const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const newItems = [...items]
+    newItems[index] = { ...newItems[index], [e.target.name]: e.target.value }
+    setItems(newItems)
   }
 
-  const handleAddRow = () => {
-    setTableData([...tableData, { itemNumber: '', partNumber: '', description: '', quantity: '', costPerUnit: '', totalCost: '' }])
+  const addItem = () => {
+    const newItemNumber = (items.length + 1).toString()
+    setItems([...items, { itemNumber: newItemNumber, partNumber: '', description: '', quantity: 0, costPerUnit: 0 }])
   }
 
-  const handleDeleteRow = (index: number) => {
-    const newData = tableData.filter((_, i) => i !== index)
-    setTableData(newData)
+  const removeItem = (index: number) => {
+    const newItems = items.filter((_, i) => i !== index).map((item, i) => ({
+      ...item,
+      itemNumber: (i + 1).toString()
+    }));
+    setItems(newItems);
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: string) => {
-    if (e.key === 'Tab' && !e.shiftKey && index === tableData.length - 1 && field === 'costPerUnit') {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Tab' && !e.shiftKey && index === items.length - 1 && e.currentTarget.name === 'costPerUnit') {
       e.preventDefault()
-      handleAddRow()
-      setTimeout(() => {
-        const inputs = document.querySelectorAll('input[name="itemNumber"]')
-        const lastInput = inputs[inputs.length - 1] as HTMLInputElement
-        lastInput?.focus()
-      }, 0)
-    }
-  }
-
-  const calculateTotalCost = () => {
-    return tableData.reduce((total, row) => {
-      const costPerUnit = parseFloat(row.costPerUnit) || 0
-      return total + costPerUnit
-    }, 0).toFixed(2)
-  }
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setPhoto(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const handleRemovePhoto = () => {
-    setPhoto(null)
-    setPhotoPreview(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      addItem()
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form Data:', formData)
-    console.log('Table Data:', tableData)
-    console.log('Photo:', photo)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    alert('Form submitted successfully!')
-    router.push('/homepage')
+    setIsSubmitting(true)
+
+    const poData = [
+      [
+        poInfo.poNumber,
+        poInfo.destination,
+        poInfo.vendor,
+        poInfo.shipVia,
+        poInfo.notes,
+        poInfo.client
+      ],
+      ...items.map(item => [
+        poInfo.client,
+        poInfo.poNumber,
+        parseInt(item.itemNumber),
+        item.partNumber,
+        item.description,
+        item.quantity,
+        item.costPerUnit
+      ])
+    ]
+
+    try {
+      const response = await axios.post('https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/PutNewPO', poData)
+      console.log('API Response:', response.data)
+      console.log('Purchase Order submitted successfully')
+
+      // Reset form after successful submission
+      setPOInfo({
+        poNumber: '',
+        client: '',
+        destination: '',
+        vendor: '',
+        shipVia: '',
+        date: '',
+        notes: '',
+      })
+      setItems([{ itemNumber: '1', partNumber: '', description: '', quantity: 0, costPerUnit: 0 }])
+    } catch (error) {
+      console.error('Error submitting Purchase Order:', error)
+      console.log('Failed to submit Purchase Order. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   useEffect(() => {
-    console.log('Table Data Updated:', tableData)
-  }, [tableData])
+    if (lastRowRef.current) {
+      const inputs = lastRowRef.current.querySelectorAll('input')
+      inputs[0]?.focus()
+    }
+  }, [items.length])
+
+  const totalCost = items.reduce((sum, item) => sum + item.quantity * item.costPerUnit, 0)
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navigation />
-      <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Purchase Order Form</h1>
-        </div>
-        <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="POnumber">
-                PO Number
-              </label>
-              <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                id="POnumber"
-                type="text"
-                name="POnumber"
-                value={formData.POnumber}
-                onChange={handleInputChange}
-              />
+    <form onSubmit={handleSubmit} className="container mx-auto p-4 space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Purchase Order Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="poNumber">PO Number</Label>
+              <Input id="poNumber" name="poNumber" value={poInfo.poNumber} onChange={handlePOInfoChange} required />
             </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="po">
-                PO#
-              </label>
-              <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                id="po"
-                type="text"
-                name="po"
-                value={formData.po}
-                onChange={handleInputChange}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="client">Client</Label>
+              <Input id="client" name="client" value={poInfo.client} onChange={handlePOInfoChange} required />
             </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="orderDate">
-                Order Date
-              </label>
-              <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                id="orderDate"
-                type="date"
-                name="orderDate"
-                value={formData.orderDate}
-                onChange={handleInputChange}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="destination">Destination</Label>
+              <Input id="destination" name="destination" value={poInfo.destination} onChange={handlePOInfoChange} required />
             </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="carrier">
-                Carrier
-              </label>
-              <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                id="carrier"
-                type="text"
-                name="carrier"
-                value={formData.carrier}
-                onChange={handleInputChange}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="vendor">Vendor</Label>
+              <Input id="vendor" name="vendor" value={poInfo.vendor} onChange={handlePOInfoChange} required />
             </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="destination">
-                Destination
-              </label>
-              <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                id="destination"
-                type="text"
-                name="destination"
-                value={formData.destination}
-                onChange={handleInputChange}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="shipVia">Ship Via</Label>
+              <Input id="shipVia" name="shipVia" value={poInfo.shipVia} onChange={handlePOInfoChange} />
             </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="shipmentType">
-                Shipment Type
-              </label>
-              <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                id="shipmentType"
-                type="text"
-                name="shipmentType"
-                value={formData.shipmentType}
-                onChange={handleInputChange}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input id="date" name="date" type="date" value={poInfo.date} onChange={handlePOInfoChange} required />
             </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="notes">
-              Notes
-            </label>
-            <textarea
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleInputChange}
-            />
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea id="notes" name="notes" value={poInfo.notes} onChange={handlePOInfoChange} />
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Add Photo
-            </label>
-            <div className="flex items-center space-x-2">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-                ref={fileInputRef}
-              />
-              <Button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Photo
-              </Button>
-              {photoPreview && (
-                <Button
-                  type="button"
-                  onClick={handleRemovePhoto}
-                  variant="destructive"
-                  className="flex items-center"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Remove Photo
-                </Button>
-              )}
-            </div>
-            {photoPreview && (
-              <div className="mt-2">
-                <Image src={photoPreview} alt="Uploaded photo" width={200} height={200} className="object-cover" />
-              </div>
-            )}
-          </div>
-          <table className="w-full mb-4">
-            <thead>
-              <tr>
-                <th>Item #</th>
-                <th>Part #</th>
-                <th>Description</th>
-                <th>Quantity</th>
-                <th>Cost Per Unit</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableData.map((row, index) => (
-                <tr key={index}>
-                  {Object.keys(row).filter(key => key !== 'totalCost').map((key) => (
-                    <td key={key}>
-                      <input
-                        type="text"
-                        name={key}
-                        className="w-full p-1 border"
-                        value={row[key as keyof typeof row]}
-                        onChange={(e) => handleTableInputChange(index, key, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, index, key)}
-                      />
-                    </td>
-                  ))}
-                  <td>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[60px]">Item #</TableHead>
+                <TableHead className="w-[120px]">Part Number</TableHead>
+                <TableHead className="w-[400px]">Description</TableHead>
+                <TableHead className="w-[80px]">Quantity</TableHead>
+                <TableHead className="w-[100px]">Cost per Unit</TableHead>
+                <TableHead className="w-[100px]">Total Cost</TableHead>
+                <TableHead className="w-[80px]">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item, index) => (
+                <TableRow key={index} ref={index === items.length - 1 ? lastRowRef : null}>
+                  <TableCell>
+                    <Input
+                      className="w-full"
+                      name="itemNumber"
+                      value={item.itemNumber}
+                      onChange={(e) => handleItemChange(index, e)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      className="w-full"
+                      name="partNumber"
+                      value={item.partNumber}
+                      onChange={(e) => handleItemChange(index, e)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Textarea
+                      className="w-full min-h-[80px] text-sm"
+                      name="description"
+                      value={item.description}
+                      onChange={(e) => handleItemChange(index, e)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      className="w-full text-sm"
+                      name="quantity"
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => handleItemChange(index, e)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      className="w-full text-sm"
+                      name="costPerUnit"
+                      type="number"
+                      value={item.costPerUnit}
+                      onChange={(e) => handleItemChange(index, e)}
+                      onKeyDown={(e) => handleKeyDown(e, index)}
+                    />
+                  </TableCell>
+                  <TableCell className="text-sm">${(item.quantity * item.costPerUnit).toFixed(2)}</TableCell>
+                  <TableCell>
                     <Button
                       type="button"
-                      onClick={() => handleDeleteRow(index)}
-                      className="p-1"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(index)}
+                      disabled={items.length === 1}
                     >
                       <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Remove item</span>
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-          <div className="flex justify-between items-center mb-4">
-            <Button type="button" onClick={handleAddRow}>
-              Add Row
-            </Button>
-            <div className="font-bold">
-              Total Cost: ${calculateTotalCost()}
-            </div>
-          </div>
-          <div className="flex items-center justify-end">
-            <Button type="submit">
-              Submit
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <TableRow>
+                <TableCell colSpan={5} className="text-right font-bold">Total:</TableCell>
+                <TableCell className="font-bold">${totalCost.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Save className="mr-2 h-4 w-4" /> 
+        {isSubmitting ? 'Submitting...' : 'Save Purchase Order'}
+      </Button>
+    </form>
   )
 }
