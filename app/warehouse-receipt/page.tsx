@@ -11,7 +11,7 @@ interface Notification {
   message: string;
 }
 
-export function Navigation() {
+function Navigation() {
   return (
     <nav className="bg-white shadow-sm mb-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,16 +22,16 @@ export function Navigation() {
           </div>
           <div className="flex justify-center space-x-4">
             <Link href="/homepage">
-              <button className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Home</button>
+              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Home</span>
             </Link>
             <Link href="/warehouse-receipt">
-              <button className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Warehouse Receipt</button>
+              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Warehouse Receipt</span>
             </Link>
             <Link href="/purchase-order">
-              <button className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Purchase Order</button>
+              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Purchase Order</span>
             </Link>
             <Link href="/material-receipt">
-              <button className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Material Receipt</button>
+              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Material Receipt</span>
             </Link>
           </div>
           <div className="w-[50px]"></div>
@@ -44,21 +44,24 @@ export function Navigation() {
 export default function WarehouseReceipt() {
   const router = useRouter()
   const [notification, setNotification] = useState<Notification | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
-    wrNumber: 'WR-011',
-    client: 'Marcel',
-    carrier: 'FedEx',
-    trackingNumber: '123456789ABC',
-    receivedBy: 'John Doe',
-    hazmat: 'yes',
-    hazmatCode: 'HZ123',
-    notes: 'Fragile package, handle with care.',
-    po: 'PO987654',
+    // the code will not work until you fix this:
+    // put a check so it follows the format: 241023-1 in the wrNumber field
+    wrNumber: '', // have a way to auto generate the warehouse receipt int this format: 241023-1 24 = year, 10 = month, 23 = day, -1 = sequence number
+    client: '',
+    carrier: '',
+    trackingNumber: '',
+    receivedBy: '',
+    hazmat: 'no',
+    hazmatCode: '',
+    notes: '',
+    po: '',
   })
-
+// this has to be populated with the data from the customer
   const [tableData, setTableData] = useState([
-    { number: '1', type: 'Pallet', length: '5', width: '5', height: '5', weight: '25', location: 'B1' },
-    { number: '2', type: 'Crate', length: '10', width: '20', height: '15', weight: '200', location: 'B2' }
+    { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' },
+    { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
   ])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -78,6 +81,8 @@ export default function WarehouseReceipt() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
+    setNotification(null)
     
     const formattedData = [
       [
@@ -101,9 +106,8 @@ export default function WarehouseReceipt() {
         Number(item.weight)
       ])
     ]
-  
+
     try {
-      console.log('Sending data:', JSON.stringify(formattedData, null, 2))
       const response = await axios.post(
         'https://i86t4jbtki.execute-api.us-east-1.amazonaws.com/prod/putWR',
         formattedData,
@@ -111,15 +115,16 @@ export default function WarehouseReceipt() {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 10000, // 10 seconds timeout
         }
       )
-      console.log('Response:', response.data)
-      if (response.status === 200 && response.data.success) {
+
+      console.log('API Response:', response.data)
+
+      if (response.status === 200) {
         setNotification({ type: 'success', message: 'Warehouse receipt submitted successfully!' })
-        setTimeout(() => {
-          router.push('/homepage')
-        }, 2000)
+        // Optionally, reset form or redirect
+        // setFormData({ ... }) // Reset form
+        // router.push('/success-page') // Redirect
       } else {
         throw new Error('Unexpected response from server')
       }
@@ -127,9 +132,6 @@ export default function WarehouseReceipt() {
       console.error('Error submitting warehouse receipt:', error)
       let errorMessage = 'Failed to submit warehouse receipt. Please try again.'
       if (axios.isAxiosError(error)) {
-        console.error('Response data:', error.response?.data)
-        console.error('Response status:', error.response?.status)
-        console.error('Response headers:', error.response?.headers)
         if (error.response) {
           errorMessage = `Server error: ${error.response.status}. ${error.response.data.message || ''}`
         } else if (error.request) {
@@ -139,6 +141,8 @@ export default function WarehouseReceipt() {
         }
       }
       setNotification({ type: 'error', message: errorMessage })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -155,7 +159,6 @@ export default function WarehouseReceipt() {
           <h1 className="text-3xl font-bold">Warehouse Receipt Form</h1>
         </div>
         <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-          {/* Form fields remain unchanged */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="client">
@@ -280,9 +283,10 @@ export default function WarehouseReceipt() {
           <div className="flex items-center justify-end">
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              disabled={isSubmitting}
+              className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Submit
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
           </div>
         </form>
