@@ -6,52 +6,52 @@ import { useRouter } from 'next/navigation'
 import { Edit, LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import axios from 'axios'
 
-type ClientData = {
-  clientName: string
-  latestWR: string
-}
+type ReceiptData = [string, string, boolean]
 
-export default function ClientHomepage() {
+export default function Homepage() {
   const router = useRouter()
-  const [clientData, setClientData] = useState<ClientData[]>([])
+  const [receipts, setReceipts] = useState<ReceiptData[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchClientData = async () => {
+    const fetchRecentReceipts = async () => {
+      setIsLoading(true)
+      setError(null)
       try {
-        const response = await fetch('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/clients-latest-wr')
-        if (!response.ok) {
-          throw new Error('Failed to fetch client data')
-        }
-        const data = await response.json()
-        const formattedData = data.map(([clientName, latestWR]: [string, string]) => ({
-          clientName,
-          latestWR
-        }))
-        setClientData(formattedData)
+        const response = await axios.get<ReceiptData[]>('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=Marcel')
+        console.log('API Response:', response.data)
+        setReceipts(response.data)
       } catch (err) {
-        setError('An error occurred while fetching client data')
-        console.error(err)
+        console.error('Error fetching receipts:', err)
+        setError('Failed to load receipts. Please try again later.')
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchClientData()
+    fetchRecentReceipts()
   }, [])
 
   const handleLogout = () => {
-    // Here you would typically clear any authentication tokens or user data
-    // For this example, we'll just redirect to the login page
     router.push('/login')
   }
 
+  const filteredReceipts = searchTerm
+    ? receipts.filter(
+        (receipt) =>
+          receipt[0].toUpperCase().includes(searchTerm.toUpperCase()) ||
+          receipt[1].toUpperCase().includes(searchTerm.toUpperCase())
+      )
+    : receipts
+
   return (
     <div className="container mx-auto px-4 py-8 relative min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-center">Client Homepage</h1>
-      
+      <h1 className="text-3xl font-bold mb-6 text-center">Welcome to WMS Xpress</h1>
+    
       <div className="mb-8">
         <div className="flex flex-wrap justify-center gap-4 mb-6">
           <Link href="/warehouse-receipt">
@@ -63,39 +63,50 @@ export default function ClientHomepage() {
           <Link href="/material-receipt">
             <Button variant="outline">Material Receipt</Button>
           </Link>
-          <Link href="/edit-warehouse">
-            <Button variant="outline">Edit Warehouse Receipt</Button>
-          </Link>
-          <Link href="/edit-purchase-order">
-            <Button variant="outline">Edit Purchase Order</Button>
-          </Link>
-          <Link href="/edit-material">
-            <Button variant="outline">Edit Material Receipt</Button>
-          </Link>
+        </div>
+        
+        <div className="mb-4 flex justify-center">
+          <input
+            type="text"
+            placeholder="Search by number (e.g., WR-012, PO987654)..."
+            className="border rounded-md p-2 w-full max-w-3xl" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
-        {isLoading ? (
-          <p className="text-center py-4">Loading client data...</p>
-        ) : error ? (
-          <p className="text-center py-4 text-red-500">{error}</p>
-        ) : (
-          <Table>
-            <TableHeader>
+      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8 max-w-3xl mx-auto"> 
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="font-bold">Warehouse Receipt</TableHead>
+              <TableHead className="font-bold">PO Number</TableHead>
+              <TableHead className="font-bold">MR</TableHead>
+              <TableHead className="font-bold w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
               <TableRow>
-                <TableHead className="font-bold">Client Name</TableHead>
-                <TableHead className="font-bold">Latest Warehouse Receipt</TableHead>
-                <TableHead className="font-bold w-[100px]">Actions</TableHead>
+                <TableCell colSpan={4} className="text-center py-4">
+                  Loading...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clientData.map((client, index) => (
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-4 text-red-500">
+                  {error}
+                </TableCell>
+              </TableRow>
+            ) : filteredReceipts.length > 0 ? (
+              filteredReceipts.map((receipt, index) => (
                 <TableRow key={index}>
-                  <TableCell>{client.clientName}</TableCell>
-                  <TableCell>{client.latestWR}</TableCell>
+                  <TableCell>{receipt[0]}</TableCell>
+                  <TableCell>{receipt[1]}</TableCell>
+                  <TableCell>{receipt[2].toString()}</TableCell>
                   <TableCell>
-                    <Link href={`/edit-warehouse/${client.latestWR}`}>
+                    <Link href={`/edit-warehouse/${receipt[0]}`}>
                       <Button variant="ghost" size="sm">
                         <Edit className="h-4 w-4" />
                         <span className="sr-only">Edit</span>
@@ -103,10 +114,16 @@ export default function ClientHomepage() {
                     </Link>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-4">
+                  {searchTerm ? "No results found" : "No receipts available"}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
       
       <div className="absolute bottom-4 right-4">
@@ -122,3 +139,8 @@ export default function ClientHomepage() {
     </div>
   )
 }
+
+
+
+
+
