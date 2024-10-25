@@ -17,16 +17,16 @@ function Navigation() {
             <span className="text-lg font-semibold">WMS Express</span>
           </div>
           <div className="flex justify-center space-x-4">
-            <Link href="/homepage">
+            <Link href="/Emp/Homepage">
               <Button variant="outline">Home</Button>
             </Link>
-            <Link href="/warehouse-receipt">
+            <Link href="/Emp/Homepage/NEW_Form/warehouse-receipt">
               <Button variant="outline">Warehouse Receipt</Button>
             </Link>
-            <Link href="/purchase-order">
+            <Link href="/Emp/Homepage/NEW_Form/purchase-order">
               <Button variant="outline">Purchase Order</Button>
             </Link>
-            <Link href="/material-receipt">
+            <Link href="/Emp/Homepage/NEW_Form/material-receipt">
               <Button variant="outline">Material Receipt</Button>
             </Link>
           </div>

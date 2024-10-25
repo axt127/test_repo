@@ -54,13 +54,13 @@ export default function Homepage() {
     
       <div className="mb-8">
         <div className="flex flex-wrap justify-center gap-4 mb-6">
-          <Link href="/warehouse-receipt">
+          <Link href="/client/HomePage/WR">
             <Button variant="outline">Warehouse Receipt</Button>
           </Link>
-          <Link href="/purchase-order">
+          <Link href="/client/HomePage/PO">
             <Button variant="outline">Purchase Order</Button>
           </Link>
-          <Link href="/material-receipt">
+          <Link href="/client/HomePage/MR">
             <Button variant="outline">Material Receipt</Button>
           </Link>
         </div>

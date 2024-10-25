@@ -15,33 +15,26 @@ export default function Login() {
   const handleClientLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (email === 'emp@gmail.com' && password === '1') {
-      console.log('Login successful, attempting to navigate...')
+      console.log('Employee login successful, attempting to navigate...')
       try {
-        await router.push('/employee')
+        await router.push('/Emp/Homepage')
         console.log('Navigation completed')
       } catch (error) {
         console.error('Navigation failed:', error)
-        console.log('Attempting fallback navigation...')
         window.location.href = '/employee'
       }
     } else if (email === 'cli@gmail.com' && password === '1') {
-      console.log('Login successful, attempting to navigate...')
+      console.log('Client login successful, attempting to navigate...')
       try {
-        await router.push('/homepage')
+        await router.push('/client/HomePage')
         console.log('Navigation completed')
       } catch (error) {
         console.error('Navigation failed:', error)
-        console.log('Attempting fallback navigation...')
-        window.location.href = '/homepage'
+        window.location.href = '/client/homepage'
       }
     } else {
-      setErrorMessage('Invalid email or password for Client Login')
+      setErrorMessage('Invalid email or password')
     }
-  }
-
-  const handleEmployeeLogin = () => {
-    alert('Employee Login triggered!')
-    // Optionally redirect employees to another page if needed
   }
 
   return (
@@ -64,11 +57,11 @@ export default function Login() {
       </div>
 
       <div className="w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center"> Sign in</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Sign in</h2>
         <form onSubmit={handleClientLogin} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-               Email:
+              Email:
             </label>
             <input
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
@@ -81,7 +74,7 @@ export default function Login() {
           </div>
           <div className="mb-6">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-               Password:
+              Password:
             </label>
             <input
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
@@ -102,8 +95,6 @@ export default function Login() {
             </button>
           </div>
         </form>
-
-        
       </div>
     </div>
   )

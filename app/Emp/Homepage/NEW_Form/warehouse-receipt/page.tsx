@@ -60,16 +60,16 @@ function Navigation() {
             <span className="text-lg font-semibold">WMS Express</span>
           </div>
           <div className="flex justify-center space-x-4">
-            <Link href="/homepage">
+            <Link href="/Emp/Homepage">
               <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Home</span>
             </Link>
-            <Link href="/warehouse-receipt">
+            <Link href="/Emp/Homepage/NEW_Form/warehouse-receipt">
               <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Warehouse Receipt</span>
             </Link>
-            <Link href="/purchase-order">
+            <Link href="/Emp/Homepage/NEW_Form/purchase-order">
               <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Purchase Order</span>
             </Link>
-            <Link href="/material-receipt">
+            <Link href="/Emp/Homepage/NEW_Form/material-receipt">
               <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Material Receipt</span>
             </Link>
           </div>
