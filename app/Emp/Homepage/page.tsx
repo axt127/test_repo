@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import Link from 'next/link'
+import Image from 'next/image'
 
 type ReceiptData = {
   warehouseNumber: string
@@ -25,8 +27,47 @@ export default function EmployeeHomepage() {
     // For this example, we'll just redirect to the login page
     router.push('/login')
   }
-
+  function Navigation() {
+    return (
+      <nav className="bg-white shadow-sm mb-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-2">
+              <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
+              <span className="text-lg font-semibold">WMS Express</span>
+            </div>
+            <div className="flex justify-center space-x-4">
+              <Link href="/Emp/Homepage">
+                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Home</span>
+              </Link>
+              <Link href="/Emp/Homepage/NEW_Form/warehouse-receipt">
+                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Warehouse Receipt</span>
+              </Link>
+              <Link href="/Emp/Homepage/NEW_Form/purchase-order">
+                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Purchase Order</span>
+              </Link>
+              <Link href="/Emp/Homepage/NEW_Form/material-receipt">
+                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Material Receipt</span>
+              </Link>
+              <Link href="/Emp/Homepage/EDIT_FORM/edit-warehouse">
+                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Edit Warehouse Receipt</span>
+              </Link>
+              <Link href="/Emp/Homepage/EDIT_FORM/edit-purchase-order">
+                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Edit Purchase Order</span>
+              </Link>
+              <Link href="/Emp/Homepage/EDIT_FORM/edit-material">
+                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Edit Material Receipt</span>
+              </Link>
+            </div>
+            <div className="w-[50px]"></div>
+          </div>
+        </div>
+      </nav>
+    )
+  }
   return (
+    <div className="min-h-screen bg-gray-100">
+      <Navigation />
     <div className="container mx-auto px-4 py-8 relative min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-center">Employee Homepage</h1>
       
@@ -61,6 +102,7 @@ export default function EmployeeHomepage() {
           Logout
         </Button>
       </div>
+    </div>
     </div>
   )
 }
