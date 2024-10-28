@@ -102,9 +102,25 @@ export default function Homepage() {
             ) : filteredReceipts.length > 0 ? (
               filteredReceipts.map((receipt, index) => (
                 <TableRow key={index}>
-                  <TableCell>{receipt[0]}</TableCell>
-                  <TableCell>{receipt[1]}</TableCell>
-                  <TableCell>{receipt[2].toString()}</TableCell>
+                  <TableCell>
+                    <Link href={`/warehouse-receipt/${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
+                      {receipt[0]}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/purchase-order/${receipt[1]}`} className="text-primary hover:text-blue-600 hover:underline">
+                      {receipt[1]}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    {receipt[2] ? (
+                      <Link href={`/material-receipt/${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
+                        View MR
+                      </Link>
+                    ) : (
+                      "No MR"
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Link href={`/edit-warehouse/${receipt[0]}`}>
                       <Button variant="ghost" size="sm">

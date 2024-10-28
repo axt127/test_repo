@@ -37,6 +37,23 @@ function Navigation() {
   )
 }
 
+interface TableRow {
+  number: string;
+  type: string;
+  length: string;
+  width: string;
+  weight: string;
+  location: string;
+}
+
+interface AdditionalTableRow {
+  itemNumber: string;
+  description: string;
+  quantityOrder: string;
+  quantityReceived: string;
+  quantity: string;
+}
+
 export default function MaterialReceipt() {
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -46,11 +63,11 @@ export default function MaterialReceipt() {
     po: ''
   })
 
-  const [tableData, setTableData] = useState([
+  const [tableData, setTableData] = useState<TableRow[]>([
     { number: '', type: '', length: '', width: '', weight: '', location: '' }
   ])
 
-  const [additionalTableData, setAdditionalTableData] = useState([
+  const [additionalTableData, setAdditionalTableData] = useState<AdditionalTableRow[]>([
     { itemNumber: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '' }
   ])
 
@@ -60,25 +77,37 @@ export default function MaterialReceipt() {
   }
 
   const handleTableInputChange = (index: number, field: string, value: string, isAdditional: boolean = false) => {
-    const newData = isAdditional ? [...additionalTableData] : [...tableData]
-    newData[index] = { ...newData[index], [field]: value }
-    isAdditional ? setAdditionalTableData(newData) : setTableData(newData)
+    if (isAdditional) {
+      const newData = [...additionalTableData]
+      newData[index] = { ...newData[index], [field]: value }
+      setAdditionalTableData(newData)
+    } else {
+      const newData = [...tableData]
+      newData[index] = { ...newData[index], [field]: value }
+      setTableData(newData)
+    }
   }
 
   const handleAddRow = (isAdditional: boolean = false) => {
-    const newRow = isAdditional
-      ? { itemNumber: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '' }
-      : { number: '', type: '', length: '', width: '', weight: '', location: '' }
-    isAdditional ? setAdditionalTableData([...additionalTableData, newRow]) : setTableData([...tableData, newRow])
+    if (isAdditional) {
+      setAdditionalTableData([...additionalTableData, { itemNumber: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '' }])
+    } else {
+      setTableData([...tableData, { number: '', type: '', length: '', width: '', weight: '', location: '' }])
+    }
   }
 
   const handleDeleteRow = (index: number, isAdditional: boolean = false) => {
-    const newData = isAdditional ? additionalTableData.filter((_, i) => i !== index) : tableData.filter((_, i) => i !== index)
-    isAdditional ? setAdditionalTableData(newData) : setTableData(newData)
+    if (isAdditional) {
+      setAdditionalTableData(additionalTableData.filter((_, i) => i !== index))
+    } else {
+      setTableData(tableData.filter((_, i) => i !== index))
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: string, isAdditional: boolean = false) => {
-    if (e.key === 'Tab' && !e.shiftKey && index === (isAdditional ? additionalTableData.length : tableData.length) - 1 && field === (isAdditional ? 'quantity' : 'location')) {
+    if (e.key === 'Tab' && !e.shiftKey && 
+        index === (isAdditional ? additionalTableData.length : tableData.length) - 1 && 
+        field === (isAdditional ? 'quantity' : 'location')) {
       e.preventDefault()
       handleAddRow(isAdditional)
       setTimeout(() => {
@@ -187,7 +216,7 @@ export default function MaterialReceipt() {
                         type="text"
                         name={key}
                         className="w-full p-1 border"
-                        value={row[key as keyof typeof row]}
+                        value={row[key as keyof TableRow]}
                         onChange={(e) => handleTableInputChange(index, key, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, index, key)}
                       />
@@ -232,7 +261,7 @@ export default function MaterialReceipt() {
                         type="text"
                         name={`${key}Additional`}
                         className="w-full p-1 border"
-                        value={row[key as keyof typeof row]}
+                        value={row[key as keyof AdditionalTableRow]}
                         onChange={(e) => handleTableInputChange(index, key, e.target.value, true)}
                         onKeyDown={(e) => handleKeyDown(e, index, key, true)}
                       />
