@@ -22,7 +22,7 @@ export default function Homepage() {
       setIsLoading(true)
       setError(null)
       try {
-        const response = await axios.get<ReceiptData[]>('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=Marcel')
+        const response = await axios.get<ReceiptData[]>('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=Jackson')
         console.log('API Response:', response.data)
         setReceipts(response.data)
       } catch (err) {
