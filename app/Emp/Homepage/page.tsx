@@ -23,8 +23,6 @@ export default function EmployeeHomepage() {
   ])
 
   const handleLogout = () => {
-    // Here you would typically clear any authentication tokens or user data
-    // For this example, we'll just redirect to the login page
     router.push('/login')
   }
   function Navigation() {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Edit, LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
@@ -22,7 +23,7 @@ export default function Homepage() {
       setIsLoading(true)
       setError(null)
       try {
-        const response = await axios.get<ReceiptData[]>('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=Jackson')
+        const response = await axios.get<ReceiptData[]>('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=Marcel')
         console.log('API Response:', response.data)
         setReceipts(response.data)
       } catch (err) {
@@ -50,8 +51,11 @@ export default function Homepage() {
 
   return (
     <div className="container mx-auto px-4 py-8 relative min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-center">Welcome to WMS Xpress</h1>
-    
+      <div className="flex flex-col items-center mb-6">
+        <Image src="/wex.png" alt="Wex Logo" width={100} height={100} className="mb-4" />
+        <h1 className="text-3xl font-bold text-center">Welcome to WMS Xpress</h1>
+      </div>
+
       <div className="mb-8">
         <div className="flex flex-wrap justify-center gap-4 mb-6">
           <Link href="/client/HomePage/WR">
@@ -141,7 +145,6 @@ export default function Homepage() {
           </TableBody>
         </Table>
       </div>
-      
       <div className="absolute bottom-4 right-4">
         <Button 
           onClick={handleLogout}

@@ -36,7 +36,7 @@ function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Express</span>
+            <span className="text-lg font-semibold">WMS Xpress</span>
           </div>
           <div className="flex justify-center space-x-4">
             <Link href="/client/HomePage">
@@ -61,48 +61,53 @@ function Navigation() {
 
 export default function PurchaseOrderViewer() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [poInfo, setPOInfo] = useState<POInfo>({
-    poNumber: '',
-    client: '',
-    destination: '',
-    vendor: '',
-    shipVia: '',
-    date: '',
-    notes: '',
-  })
-
+  const [poInfo, setPOInfo] = useState<POInfo | null>(null)
   const [items, setItems] = useState<Item[]>([
     { itemNumber: '1', partNumber: '', description: '', quantity: 0, costPerUnit: 0 }
   ])
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSearch = async () => {
-    // In a real application, you would make an API call here
-    // For this example, we'll use mock data
-    const mockPOInfo: POInfo = {
-      poNumber: searchTerm,
-      client: 'Acme Corp',
-      destination: 'Warehouse A',
-      vendor: 'Supplier XYZ',
-      shipVia: 'FedEx',
-      date: '2023-07-01',
-      notes: 'Urgent delivery required',
+    setIsLoading(true)
+    try {
+      // Simulating API call with setTimeout
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      const mockPOInfo: POInfo = {
+        poNumber: searchTerm,
+        client: 'Acme Corp',
+        destination: 'Warehouse A',
+        vendor: 'Supplier XYZ',
+        shipVia: 'FedEx',
+        date: '2023-07-01',
+        notes: 'Urgent delivery required',
+      }
+
+      const mockItems: Item[] = [
+        { itemNumber: '1', partNumber: 'ABC123', description: 'Widget A', quantity: 100, costPerUnit: 10 },
+        { itemNumber: '2', partNumber: 'DEF456', description: 'Gadget B', quantity: 50, costPerUnit: 20 },
+      ]
+
+      setPOInfo(mockPOInfo)
+      setItems(mockItems)
+    } catch (error) {
+      console.error('Error fetching purchase order:', error)
+      // Handle error (e.g., show error message to user)
+    } finally {
+      setIsLoading(false)
     }
-
-    const mockItems: Item[] = [
-      { itemNumber: '1', partNumber: 'ABC123', description: 'Widget A', quantity: 100, costPerUnit: 10 },
-      { itemNumber: '2', partNumber: 'DEF456', description: 'Gadget B', quantity: 50, costPerUnit: 20 },
-    ]
-
-    setPOInfo(mockPOInfo)
-    setItems(mockItems)
   }
 
   const totalCost = items.reduce((sum, item) => sum + item.quantity * item.costPerUnit, 0)
+
+  const inputClass = "w-full p-2 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 " + 
+    (poInfo ? "text-gray-700 bg-white border-gray-300" : "text-gray-400 bg-gray-100 border-gray-200")
 
   return (
     <div className="min-h-screen bg-gray-100">
       <Navigation />
       <div className="container mx-auto p-4 space-y-6">
+        <h1 className="text-3xl font-bold">Purchase Order Viewer</h1>
         <div className="flex gap-4 mb-6">
           <Input
             type="text"
@@ -111,9 +116,9 @@ export default function PurchaseOrderViewer() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-grow"
           />
-          <Button onClick={handleSearch}>
+          <Button onClick={handleSearch} disabled={isLoading}>
             <Search className="mr-2 h-4 w-4" />
-            Search
+            {isLoading ? 'Searching...' : 'Search'}
           </Button>
         </div>
         
@@ -125,32 +130,32 @@ export default function PurchaseOrderViewer() {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="poNumber">PO Number</Label>
-                <Input id="poNumber" name="poNumber" value={poInfo.poNumber} readOnly />
+                <Input id="poNumber" name="poNumber" value={poInfo?.poNumber || ''} className={inputClass} readOnly />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="client">Client</Label>
-                <Input id="client" name="client" value={poInfo.client} readOnly />
+                <Input id="client" name="client" value={poInfo?.client || ''} className={inputClass} readOnly />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="destination">Destination</Label>
-                <Input id="destination" name="destination" value={poInfo.destination} readOnly />
+                <Input id="destination" name="destination" value={poInfo?.destination || ''} className={inputClass} readOnly />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vendor">Vendor</Label>
-                <Input id="vendor" name="vendor" value={poInfo.vendor} readOnly />
+                <Input id="vendor" name="vendor" value={poInfo?.vendor || ''} className={inputClass} readOnly />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="shipVia">Ship Via</Label>
-                <Input id="shipVia" name="shipVia" value={poInfo.shipVia} readOnly />
+                <Input id="shipVia" name="shipVia" value={poInfo?.shipVia || ''} className={inputClass} readOnly />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
-                <Input id="date" name="date" type="date" value={poInfo.date} readOnly />
+                <Input id="date" name="date" type="date" value={poInfo?.date || ''} className={inputClass} readOnly />
               </div>
             </div>
             <div className="mt-4 space-y-2">
               <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" name="notes" value={poInfo.notes} readOnly />
+              <Textarea id="notes" name="notes" value={poInfo?.notes || ''} className={inputClass} readOnly />
             </div>
           </CardContent>
         </Card>
@@ -175,19 +180,19 @@ export default function PurchaseOrderViewer() {
                 {items.map((item, index) => (
                   <TableRow key={index}>
                     <TableCell>
-                      <Input className="w-full" value={item.itemNumber} readOnly />
+                      <Input className={inputClass} value={item.itemNumber} readOnly />
                     </TableCell>
                     <TableCell>
-                      <Input className="w-full" value={item.partNumber} readOnly />
+                      <Input className={inputClass} value={item.partNumber} readOnly />
                     </TableCell>
                     <TableCell>
-                      <Textarea className="w-full min-h-[80px] text-sm" value={item.description} readOnly />
+                      <Textarea className={`${inputClass} min-h-[80px] text-sm`} value={item.description} readOnly />
                     </TableCell>
                     <TableCell>
-                      <Input className="w-full text-sm" type="number" value={item.quantity} readOnly />
+                      <Input className={`${inputClass} text-sm`} type="number" value={item.quantity} readOnly />
                     </TableCell>
                     <TableCell>
-                      <Input className="w-full text-sm" type="number" value={item.costPerUnit} readOnly />
+                      <Input className={`${inputClass} text-sm`} type="number" value={item.costPerUnit} readOnly />
                     </TableCell>
                     <TableCell className="text-sm">${(item.quantity * item.costPerUnit).toFixed(2)}</TableCell>
                   </TableRow>

@@ -36,7 +36,7 @@ function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Express</span>
+            <span className="text-lg font-semibold">WMS Xpress</span>
           </div>
           <div className="flex justify-center space-x-4">
             <Link href="/client/HomePage">
@@ -62,18 +62,7 @@ function Navigation() {
 export default function WarehouseReceiptViewer() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
-  const [warehouseReceipt, setWarehouseReceipt] = useState<WarehouseReceipt>({
-    wrNumber: '',
-    client: '',
-    carrier: '',
-    trackingNumber: '',
-    receivedBy: '',
-    hazmat: 'no',
-    hazmatCode: '',
-    notes: '',
-    po: '',
-    boxes: [{ number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }],
-  })
+  const [warehouseReceipt, setWarehouseReceipt] = useState<WarehouseReceipt | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSearch = async () => {
@@ -105,6 +94,9 @@ export default function WarehouseReceiptViewer() {
     }
   }
 
+  const inputClass = "shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline " + 
+    (warehouseReceipt ? "text-gray-700 bg-white" : "text-gray-400 bg-gray-100")
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Navigation />
@@ -131,10 +123,10 @@ export default function WarehouseReceiptViewer() {
                   WR Number
                 </label>
                 <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className={inputClass}
                   id="wrNumber"
                   type="text"
-                  value={warehouseReceipt.wrNumber}
+                  value={warehouseReceipt?.wrNumber || ''}
                   readOnly
                 />
               </div>
@@ -143,10 +135,10 @@ export default function WarehouseReceiptViewer() {
                   Client
                 </label>
                 <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className={inputClass}
                   id="client"
                   type="text"
-                  value={warehouseReceipt.client}
+                  value={warehouseReceipt?.client || ''}
                   readOnly
                 />
               </div>
@@ -155,10 +147,10 @@ export default function WarehouseReceiptViewer() {
                   PO#
                 </label>
                 <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className={inputClass}
                   id="po"
                   type="text"
-                  value={warehouseReceipt.po}
+                  value={warehouseReceipt?.po || ''}
                   readOnly
                 />
               </div>
@@ -167,10 +159,10 @@ export default function WarehouseReceiptViewer() {
                   Carrier
                 </label>
                 <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className={inputClass}
                   id="carrier"
                   type="text"
-                  value={warehouseReceipt.carrier}
+                  value={warehouseReceipt?.carrier || ''}
                   readOnly
                 />
               </div>
@@ -179,10 +171,10 @@ export default function WarehouseReceiptViewer() {
                   Tracking Number
                 </label>
                 <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className={inputClass}
                   id="trackingNumber"
                   type="text"
-                  value={warehouseReceipt.trackingNumber}
+                  value={warehouseReceipt?.trackingNumber || ''}
                   readOnly
                 />
               </div>
@@ -191,10 +183,10 @@ export default function WarehouseReceiptViewer() {
                   Received By
                 </label>
                 <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className={inputClass}
                   id="receivedBy"
                   type="text"
-                  value={warehouseReceipt.receivedBy}
+                  value={warehouseReceipt?.receivedBy || ''}
                   readOnly
                 />
               </div>
@@ -204,22 +196,22 @@ export default function WarehouseReceiptViewer() {
                 <input
                   type="checkbox"
                   className="form-checkbox"
-                  checked={warehouseReceipt.hazmat === 'yes'}
+                  checked={warehouseReceipt?.hazmat === 'yes'}
                   readOnly
                 />
                 <span className="ml-2">Hazmat</span>
               </label>
             </div>
-            {warehouseReceipt.hazmat === 'yes' && (
+            {warehouseReceipt?.hazmat === 'yes' && (
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="hazmatCode">
                   Hazmat Code
                 </label>
                 <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className={inputClass}
                   id="hazmatCode"
                   type="text"
-                  value={warehouseReceipt.hazmatCode}
+                  value={warehouseReceipt?.hazmatCode || ''}
                   readOnly
                 />
               </div>
@@ -229,9 +221,9 @@ export default function WarehouseReceiptViewer() {
                 Notes
               </label>
               <textarea
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={inputClass}
                 id="notes"
-                value={warehouseReceipt.notes}
+                value={warehouseReceipt?.notes || ''}
                 readOnly
               />
             </div>
@@ -250,20 +242,35 @@ export default function WarehouseReceiptViewer() {
                   </tr>
                 </thead>
                 <tbody>
-                  {warehouseReceipt.boxes.map((box, index) => (
+                  {warehouseReceipt?.boxes.map((box, index) => (
                     <tr key={index}>
                       {Object.values(box).map((value, fieldIndex) => (
                         <td key={fieldIndex}>
                           <input
                             type="text"
-                            className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none"
+                            className={`w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none ${
+                              warehouseReceipt ? "text-gray-700 bg-white" : "text-gray-400 bg-gray-100"
+                            }`}
                             value={value}
                             readOnly
                           />
                         </td>
                       ))}
                     </tr>
-                  ))}
+                  )) || (
+                    <tr>
+                      {Array(7).fill(0).map((_, index) => (
+                        <td key={index}>
+                          <input
+                            type="text"
+                            className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none text-gray-400 bg-gray-100"
+                            value=""
+                            readOnly
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

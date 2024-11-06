@@ -14,7 +14,7 @@ function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Express</span>
+            <span className="text-lg font-semibold">WMS Xpress</span>
           </div>
           <div className="flex justify-center space-x-4">
             <Link href="/client/HomePage">
@@ -71,30 +71,46 @@ export default function MaterialReceiptViewer() {
     { itemNumber: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '' }
   ])
 
-  const handleSearch = async () => {
-    // In a real application, you would make an API call here
-    // For this example, we'll use mock data
-    const mockData = {
-      formData: {
-        warehouseNumber: 'WH001',
-        client: 'Acme Corp',
-        receiptDate: '2023-06-30',
-        po: 'PO12345'
-      },
-      tableData: [
-        { number: '1', type: 'Box', length: '10', width: '10', weight: '5', location: 'A1' },
-        { number: '2', type: 'Pallet', length: '48', width: '40', weight: '500', location: 'B2' }
-      ],
-      additionalTableData: [
-        { itemNumber: 'ITEM001', description: 'Widget A', quantityOrder: '100', quantityReceived: '95', quantity: '95' },
-        { itemNumber: 'ITEM002', description: 'Gadget B', quantityOrder: '50', quantityReceived: '50', quantity: '50' }
-      ]
-    }
+  const [isLoading, setIsLoading] = useState(false)
+  const [dataLoaded, setDataLoaded] = useState(false)
 
-    setFormData(mockData.formData)
-    setTableData(mockData.tableData)
-    setAdditionalTableData(mockData.additionalTableData)
+  const handleSearch = async () => {
+    setIsLoading(true)
+    try {
+      // Simulating API call with setTimeout
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      const mockData = {
+        formData: {
+          warehouseNumber: 'WH001',
+          client: 'Acme Corp',
+          receiptDate: '2023-06-30',
+          po: 'PO12345'
+        },
+        tableData: [
+          { number: '1', type: 'Box', length: '10', width: '10', weight: '5', location: 'A1' },
+          { number: '2', type: 'Pallet', length: '48', width: '40', weight: '500', location: 'B2' }
+        ],
+        additionalTableData: [
+          { itemNumber: 'ITEM001', description: 'Widget A', quantityOrder: '100', quantityReceived: '95', quantity: '95' },
+          { itemNumber: 'ITEM002', description: 'Gadget B', quantityOrder: '50', quantityReceived: '50', quantity: '50' }
+        ]
+      }
+
+      setFormData(mockData.formData)
+      setTableData(mockData.tableData)
+      setAdditionalTableData(mockData.additionalTableData)
+      setDataLoaded(true)
+    } catch (error) {
+      console.error('Error fetching material receipt:', error)
+      // Handle error (e.g., show error message to user)
+    } finally {
+      setIsLoading(false)
+    }
   }
+
+  const inputClass = "shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline " + 
+    (dataLoaded ? "text-gray-700 bg-white" : "text-gray-400 bg-gray-100")
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -111,8 +127,8 @@ export default function MaterialReceiptViewer() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-grow"
           />
-          <Button onClick={handleSearch}>
-            Search
+          <Button onClick={handleSearch} disabled={isLoading}>
+            {isLoading ? 'Searching...' : 'Search'}
           </Button>
         </div>
         <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
@@ -122,7 +138,7 @@ export default function MaterialReceiptViewer() {
                 Warehouse Number
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={inputClass}
                 id="warehouseNumber"
                 type="text"
                 name="warehouseNumber"
@@ -135,7 +151,7 @@ export default function MaterialReceiptViewer() {
                 Client
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={inputClass}
                 id="client"
                 type="text"
                 name="client"
@@ -148,7 +164,7 @@ export default function MaterialReceiptViewer() {
                 Receipt Date Received
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={inputClass}
                 id="receiptDate"
                 type="date"
                 name="receiptDate"
@@ -161,7 +177,7 @@ export default function MaterialReceiptViewer() {
                 PO
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className={inputClass}
                 id="po"
                 type="text"
                 name="po"
@@ -189,7 +205,7 @@ export default function MaterialReceiptViewer() {
                       <input
                         type="text"
                         name={key}
-                        className="w-full p-1 border"
+                        className={`w-full p-1 border ${inputClass}`}
                         value={row[key as keyof TableRow]}
                         readOnly
                       />
@@ -218,7 +234,7 @@ export default function MaterialReceiptViewer() {
                       <input
                         type="text"
                         name={`${key}Additional`}
-                        className="w-full p-1 border"
+                        className={`w-full p-1 border ${inputClass}`}
                         value={row[key as keyof AdditionalTableRow]}
                         readOnly
                       />
