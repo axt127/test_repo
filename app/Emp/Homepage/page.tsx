@@ -1,106 +1,124 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import { LogOut, Home, FileText, ShoppingCart, Package, Edit, ChevronRight } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import Link from 'next/link'
 import Image from 'next/image'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion } from "framer-motion"
 
-type ReceiptData = {
-  warehouseNumber: string
-  poNumber: string
-  mrNumber: string
-}
+type Client = string
 
 export default function EmployeeHomepage() {
   const router = useRouter()
-  const [receipts, setReceipts] = useState<ReceiptData[]>([
-    { warehouseNumber: "1", poNumber: "2", mrNumber: "3" },
-    { warehouseNumber: "4", poNumber: "5", mrNumber: "6" },
-    { warehouseNumber: "7", poNumber: "8", mrNumber: "9" },
-  ])
+  const [clients, setClients] = useState<Client[]>([])
+
+  useEffect(() => {
+    fetchClients()
+  }, [])
+
+  const fetchClients = async () => {
+    try {
+      const response = await fetch('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-clients')
+      const data = await response.json()
+      setClients(data)
+    } catch (error) {
+      console.error('Error fetching clients:', error)
+    }
+  }
 
   const handleLogout = () => {
     router.push('/login')
   }
+
   function Navigation() {
     return (
-      <nav className="bg-white shadow-sm mb-4">
+      <nav className="bg-primary text-primary-foreground shadow-md mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-2">
-              <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-              <span className="text-lg font-semibold">WMS Express</span>
+              <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
+              <span className="text-xl font-bold">WMS Express</span>
             </div>
-            <div className="flex justify-center space-x-4">
-              <Link href="/Emp/Homepage">
-                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Home</span>
-              </Link>
-              <Link href="/Emp/Homepage/NEW_Form/warehouse-receipt">
-                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Warehouse Receipt</span>
-              </Link>
-              <Link href="/Emp/Homepage/NEW_Form/purchase-order">
-                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Purchase Order</span>
-              </Link>
-              <Link href="/Emp/Homepage/NEW_Form/material-receipt">
-                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Material Receipt</span>
-              </Link>
-              <Link href="/Emp/Homepage/EDIT_FORM/edit-warehouse">
-                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Edit Warehouse Receipt</span>
-              </Link>
-              <Link href="/Emp/Homepage/EDIT_FORM/edit-purchase-order">
-                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Edit Purchase Order</span>
-              </Link>
-              <Link href="/Emp/Homepage/EDIT_FORM/edit-material">
-                <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Edit Material Receipt</span>
-              </Link>
+            <div className="flex justify-center space-x-1">
+              {[
+                { href: "/Emp/Homepage", label: "Home", icon: Home },
+                { href: "/Emp/Homepage/NEW_Form/warehouse-receipt", label: "Warehouse Receipt", icon: FileText },
+                { href: "/Emp/Homepage/NEW_Form/purchase-order", label: "Purchase Order", icon: ShoppingCart },
+                { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
+                { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
+                { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
+                { href: "/Emp/Homepage/EDIT_FORM/edit-material", label: "Edit Material", icon: Edit },
+              ].map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
+                    <item.icon className="h-5 w-5 mb-1" />
+                    <span className="text-xs text-center">{item.label}</span>
+                  </Button>
+                </Link>
+              ))}
             </div>
-            <div className="w-[50px]"></div>
+            <Button 
+              onClick={handleLogout}
+              className="flex items-center"
+              variant="secondary"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </nav>
     )
   }
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
       <Navigation />
-    <div className="container mx-auto px-4 py-8 relative min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-center">Employee Homepage</h1>
-      
-      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-bold">Warehouse Number</TableHead>
-              <TableHead className="font-bold">PO Number</TableHead>
-              <TableHead className="font-bold">MR Number</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {receipts.map((receipt, index) => (
-              <TableRow key={index}>
-                <TableCell>{receipt.warehouseNumber}</TableCell>
-                <TableCell>{receipt.poNumber}</TableCell>
-                <TableCell>{receipt.mrNumber}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      
-      <div className="absolute bottom-4 right-4">
-        <Button 
-          onClick={handleLogout}
-          className="flex items-center"
-          variant="outline"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
-      </div>
-    </div>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="container mx-auto px-4 py-8 relative"
+      >
+        <h1 className="text-4xl font-bold mb-8 text-center text-primary">Employee Dashboard</h1>
+        
+        <Card className="w-full mb-8">
+          <CardHeader>
+            <CardTitle>All Clients</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-bold">Client Name</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {clients.map((client, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{client}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push(`/Emp/Homepage/Data?clientName=${encodeURIComponent(client)}`)}
+                        aria-label={`View details for ${client}`}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   )
 }
