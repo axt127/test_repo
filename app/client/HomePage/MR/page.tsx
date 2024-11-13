@@ -7,10 +7,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { X } from 'lucide-react'
+import { X, Home, FileText, ShoppingCart, Package } from 'lucide-react'
 
 interface MaterialReceipt {
-  wrId: string;
+  mrId: string; // Changed from wrId to mrId
   enteredBy: string;
   notes: string;
   items: {
@@ -21,26 +21,29 @@ interface MaterialReceipt {
   }[];
 }
 
-function Navigation({ onReset }: { onReset: () => void }) {
+function Navigation() {
   return (
-    <nav className="bg-white shadow-sm mb-4">
+    <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
-            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Xpress</span>
+            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
+            <span className="text-xl font-bold">WMS Express</span>
           </div>
-          <div className="flex justify-center space-x-4">
-            <Link href="/client/HomePage">
-              <Button variant="outline">Home</Button>
-            </Link>
-            <Link href="/client/HomePage/WR">
-              <Button variant="outline">Warehouse Receipt</Button>
-            </Link>
-            <Link href="/client/HomePage/PO">
-              <Button variant="outline">Purchase Order</Button>
-            </Link>
-            <Button variant="outline" onClick={onReset}>Material Receipt</Button>
+          <div className="flex justify-center space-x-1">
+            {[
+              { href: "/client/HomePage", label: "Home", icon: Home },
+              { href: "/client/HomePage/WR", label: "Warehouse Receipt", icon: FileText },
+              { href: "/client/HomePage/PO", label: "Purchase Order", icon: ShoppingCart },
+              { href: "/client/HomePage/MR", label: "Material Receipt", icon: Package },
+            ].map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
+                  <item.icon className="h-5 w-5 mb-1" />
+                  <span className="text-xs text-center">{item.label}</span>
+                </Button>
+              </Link>
+            ))}
           </div>
           <div className="w-[50px]"></div>
         </div>
@@ -70,7 +73,7 @@ export default function MaterialReceiptViewer() {
         const [headerData, ...itemsData] = data
 
         setMaterialReceipt({
-          wrId: headerData[0] || '',
+          mrId: headerData[0] || '', // Changed from wrId to mrId
           enteredBy: headerData[1] || '',
           notes: headerData[2] || '',
           items: itemsData.map(item => ({
@@ -118,16 +121,12 @@ export default function MaterialReceiptViewer() {
     setHasSearched(false)
   }
 
-  const handleReset = () => {
-    handleClear()
-  }
-
   const inputClass = "shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline " + 
     (hasSearched ? "text-gray-700 bg-white" : "text-gray-400 bg-gray-100")
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navigation onReset={handleReset} />
+    <div className="min-h-screen bg-background">
+      <Navigation />
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Material Receipt Viewer</h1>
@@ -165,15 +164,15 @@ export default function MaterialReceiptViewer() {
         <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="wrId">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="mrId">
                 MR ID
               </label>
               <input
                 className={inputClass}
-                id="wrId"
+                id="mrId"
                 type="text"
-                name="wrId"
-                value={materialReceipt?.wrId || ''}
+                name="mrId"
+                value={materialReceipt?.mrId || ''}
                 readOnly
               />
             </div>

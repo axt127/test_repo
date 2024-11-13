@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { X } from 'lucide-react'
+import { X, Home, FileText, ShoppingCart, Package } from 'lucide-react'
 
 interface WarehouseReceipt {
   wrNumber: string;
@@ -30,26 +30,29 @@ interface WarehouseReceipt {
   }[];
 }
 
-function Navigation({ onReset }: { onReset: () => void }) {
+function Navigation() {
   return (
-    <nav className="bg-white shadow-sm mb-4">
+    <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
-            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Xpress</span>
+            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
+            <span className="text-xl font-bold">WMS Express</span>
           </div>
-          <div className="flex justify-center space-x-4">
-            <Link href="/client/HomePage">
-              <Button variant="outline">Home</Button>
-            </Link>
-            <Button variant="outline" onClick={onReset}>Warehouse Receipt</Button>
-            <Link href="/client/HomePage/PO">
-              <Button variant="outline">Purchase Order</Button>
-            </Link>
-            <Link href="/client/HomePage/MR">
-              <Button variant="outline">Material Receipt</Button>
-            </Link>
+          <div className="flex justify-center space-x-1">
+            {[
+              { href: "/client/HomePage", label: "Home", icon: Home },
+              { href: "/client/HomePage/WR", label: "Warehouse Receipt", icon: FileText },
+              { href: "/client/HomePage/PO", label: "Purchase Order", icon: ShoppingCart },
+              { href: "/client/HomePage/MR", label: "Material Receipt", icon: Package },
+            ].map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
+                  <item.icon className="h-5 w-5 mb-1" />
+                  <span className="text-xs text-center">{item.label}</span>
+                </Button>
+              </Link>
+            ))}
           </div>
           <div className="w-[50px]"></div>
         </div>
@@ -94,8 +97,8 @@ export default function WarehouseReceiptViewer() {
             length: box[2] || '',
             width: box[3] || '',
             height: box[4] || '',
-            weight: box[6] || '',  // Changed from box[5] to box[6]
-            location: box[5] || '' // Changed from box[6] to box[5]
+            weight: box[6] || '', 
+            location: box[5] || '' 
           }))
         })
       } else {
@@ -165,8 +168,8 @@ export default function WarehouseReceiptViewer() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navigation onReset={handleReset} />
+    <div className="min-h-screen bg-background">
+      <Navigation />
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Warehouse Receipt Viewer</h1>
@@ -243,7 +246,7 @@ export default function WarehouseReceiptViewer() {
             <table className="w-full border-separate border-spacing-4">
               <thead>
                 <tr>
-                  <th className="text-left pb-3 px-3 border-b">Number</th>
+                  <th className="text-left pb-3 px-3 border-b">Number Of Items</th>
                   <th className="text-left pb-3 px-3 border-b">Type</th>
                   <th className="text-left pb-3 px-3 border-b">Length</th>
                   <th className="text-left pb-3 px-3 border-b">Width</th>

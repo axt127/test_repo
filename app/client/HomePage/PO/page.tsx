@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, KeyboardEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
-import { Save, Plus, Trash2, Search, X } from 'lucide-react'
+import { Save, Plus, Trash2, Search, X, Home, FileText, ShoppingCart, Package } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,15 +14,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 interface Item {
-  client: string
-  poNumber: string
-  lineNumber: number
-  partNumber: string
-  description: string
-  quantity: number
-  weight: number
-  costPerUnit: number
-  quantityReceived: number
+  itemNumber?: number
+  partNumber?: string
+  description?: string
+  quantity?: number
+  costPerUnit?: number
+  quantityReceived?: number
 }
 
 interface POInfo {
@@ -34,26 +31,29 @@ interface POInfo {
   client: string
 }
 
-function Navigation({ onReset }: { onReset: () => void }) {
+function Navigation() {
   return (
-    <nav className="bg-white shadow-sm mb-4">
+    <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
-            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Xpress</span>
+            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
+            <span className="text-xl font-bold">WMS Express</span>
           </div>
-          <div className="flex justify-center space-x-4">
-            <Link href="/client/HomePage">
-              <Button variant="outline">Home</Button>
-            </Link>
-            <Link href="/client/HomePage/WR">
-              <Button variant="outline">Warehouse Receipt</Button>
-            </Link>
-            <Button variant="outline" onClick={onReset}>Purchase Order</Button>
-            <Link href="/client/HomePage/MR">
-              <Button variant="outline">Material Receipt</Button>
-            </Link>
+          <div className="flex justify-center space-x-1">
+            {[
+              { href: "/client/HomePage", label: "Home", icon: Home },
+              { href: "/client/HomePage/WR", label: "Warehouse Receipt", icon: FileText },
+              { href: "/client/HomePage/PO", label: "Purchase Order", icon: ShoppingCart },
+              { href: "/client/HomePage/MR", label: "Material Receipt", icon: Package },
+            ].map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
+                  <item.icon className="h-5 w-5 mb-1" />
+                  <span className="text-xs text-center">{item.label}</span>
+                </Button>
+              </Link>
+            ))}
           </div>
           <div className="w-[50px]"></div>
         </div>
@@ -80,12 +80,8 @@ export default function PurchaseOrderViewer() {
       const response = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${poNumber}`)
       const data = response.data
 
-      if (Array.isArray(data) && data.length >= 2) {
+      if (Array.isArray(data) && data.length >= 3) {
         const [poDetails, itemCount, ...itemsData] = data
-
-        if (itemsData.length === 0) {
-          throw new Error('No items found for this Purchase Order')
-        }
 
         setPOInfo({
           poNumber: poDetails[0] || '',
@@ -97,20 +93,17 @@ export default function PurchaseOrderViewer() {
         })
 
         const formattedItems = itemsData.map(item => ({
-          client: item[0] || '',
-          poNumber: item[1] || '',
-          lineNumber: item[2] || 0,
+          itemNumber: parseInt(item[2]) || 0,
           partNumber: item[3] || '',
           description: item[4] || '',
-          quantity: item[5] || 0,
-          weight: item[6] || 0,
-          costPerUnit: item[7] || 0,
-          quantityReceived: item[8] || 0
+          quantity: parseInt(item[5]) || 0,
+          costPerUnit: parseFloat(item[6]) || 0,
+          quantityReceived: parseInt(item[7]) || 0
         }))
 
         setItems(formattedItems)
       } else {
-        throw new Error('No data found for this Purchase Order')
+        throw new Error('Invalid response format')
       }
     } catch (error) {
       console.error('Error fetching purchase order:', error)
@@ -155,18 +148,14 @@ export default function PurchaseOrderViewer() {
     }
   }
 
-  const handleReset = () => {
-    handleClear()
-  }
-
   const inputClass = "w-full p-2 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 " + 
     (hasSearched ? "text-gray-700 bg-white border-gray-300" : "text-gray-400 bg-gray-100 border-gray-200")
 
-  const totalCost = items.reduce((sum, item) => sum + item.quantity * item.costPerUnit, 0)
+  const totalCost = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.costPerUnit || 0)), 0)
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navigation onReset={handleReset} />
+    <div className="min-h-screen bg-background">
+      <Navigation />
       <div className="container mx-auto p-4 space-y-6">
         <h1 className="text-3xl font-bold">Purchase Order Viewer</h1>
         <form onSubmit={handleSearch} className="flex gap-4 mb-6">
@@ -200,12 +189,6 @@ export default function PurchaseOrderViewer() {
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
             <span className="block sm:inline">{error}</span>
-          </div>
-        )}
-
-        {!error && hasSearched && items.length === 0 && (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <span className="block sm:inline">No items found for this Purchase Order.</span>
           </div>
         )}
 
@@ -251,59 +234,56 @@ export default function PurchaseOrderViewer() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60px]">Line #</TableHead>
-                  <TableHead className="w-[120px]">Part Number</TableHead>
+                  <TableHead className="w-[60px]">Item#</TableHead>
+                  <TableHead className="w-[120px]">Part ID</TableHead>
                   <TableHead className="w-[400px]">Description</TableHead>
                   <TableHead className="w-[80px]">Quantity</TableHead>
-                  <TableHead className="w-[100px]">Weight</TableHead>
                   <TableHead className="w-[100px]">Cost per Unit</TableHead>
-                  <TableHead className="w-[100px]">Quantity Received</TableHead> {/* Added Quantity Received */}
+                  <TableHead className="w-[100px]">Quantity Received</TableHead>
                   <TableHead className="w-[100px]">Total Cost</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {hasSearched ? (
-                  items.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Input className={inputClass} value={item.lineNumber} readOnly />
-                      </TableCell>
-                      <TableCell>
-                        <Input className={inputClass} value={item.partNumber} readOnly />
-                      </TableCell>
-                      <TableCell>
-                        <Textarea className={`${inputClass} min-h-[80px] text-sm`} value={item.description} readOnly />
-                      </TableCell>
-                      <TableCell>
-                        <Input className={`${inputClass} text-sm`} type="number" value={item.quantity} readOnly />
-                      </TableCell>
-                      <TableCell>
-                        <Input className={`${inputClass} text-sm`} type="number" value={item.weight} readOnly />
-                      </TableCell>
-                      <TableCell>
-                        <Input className={`${inputClass} text-sm`} type="number" value={item.costPerUnit} readOnly />
-                      </TableCell>
-                      <TableCell> {/* Added Quantity Received Cell */}
-                        <Input 
-                          className={`${inputClass} text-sm`} 
-                          type="number" 
-                          value={item.quantityReceived ?? 0} 
-                          readOnly 
-                        />
-                      </TableCell>
-                      <TableCell className="text-sm">${(item.quantity * item.costPerUnit).toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-4"> {/* Increased colSpan */}
-                      No items to display. Please search for a Purchase Order.
+                {(items.length > 0 ? items : [{}]).map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Input className={inputClass} value={item.itemNumber || ''} readOnly />
+                    </TableCell>
+                    <TableCell>
+                      <Input className={inputClass} value={item.partNumber || ''} readOnly />
+                    </TableCell>
+                    <TableCell>
+                      <Textarea className={`${inputClass} min-h-[80px] text-sm`} value={item.description || ''} readOnly />
+                    </TableCell>
+                    <TableCell>
+                      <Input className={`${inputClass} text-sm`} type="number" value={item.quantity || ''} readOnly />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        className={`${inputClass} text-sm`} 
+                        type="number" 
+                        value={item.costPerUnit !== undefined ? item.costPerUnit.toFixed(2) : ''} 
+                        readOnly 
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        className={`${inputClass} text-sm`} 
+                        type="number" 
+                        value={item.quantityReceived || ''} 
+                        readOnly 
+                      />
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {item.quantity !== undefined && item.costPerUnit !== undefined
+                        ? `$${(item.quantity * item.costPerUnit).toFixed(2)}`
+                        : ''}
                     </TableCell>
                   </TableRow>
-                )}
-                {hasSearched && (
+                ))}
+                {hasSearched && items.length > 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-right font-bold">Total:</TableCell> {/* Increased colSpan */}
+                    <TableCell colSpan={6} className="text-right font-bold">Total:</TableCell>
                     <TableCell className="font-bold">${totalCost.toFixed(2)}</TableCell>
                   </TableRow>
                 )}
@@ -315,3 +295,6 @@ export default function PurchaseOrderViewer() {
     </div>
   )
 }
+
+
+
