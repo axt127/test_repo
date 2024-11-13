@@ -107,18 +107,18 @@ export default function Homepage() {
               filteredReceipts.map((receipt, index) => (
                 <TableRow key={index}>
                   <TableCell>
-                    <Link href={`/warehouse-receipt/${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
+                    <Link href={`/client/HomePage/WR?wrNumber=${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
                       {receipt[0]}
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Link href={`/purchase-order/${receipt[1]}`} className="text-primary hover:text-blue-600 hover:underline">
+                    <Link href={`/client/HomePage/PO?poNumber=${receipt[1]}`} className="text-primary hover:text-blue-600 hover:underline">
                       {receipt[1]}
                     </Link>
                   </TableCell>
                   <TableCell>
                     {receipt[2] ? (
-                      <Link href={`/material-receipt/${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
+                      <Link href={`/client/HomePage/MR?mrNumber=${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
                         View MR
                       </Link>
                     ) : (
