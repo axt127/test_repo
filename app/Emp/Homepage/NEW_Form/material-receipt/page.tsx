@@ -5,32 +5,46 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
-import { Trash2 } from 'lucide-react'
+import { Trash2, LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
 
 function Navigation() {
+  const router = useRouter()
+
+  const handleLogout = () => {
+    router.push('/login')
+  }
+
   return (
-    <nav className="bg-white shadow-sm mb-4">
+    <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
-            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Express</span>
+            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
+            <span className="text-xl font-bold">WMS Express</span>
           </div>
-          <div className="flex justify-center space-x-4">
-            <Link href="/Emp/Homepage">
-              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Home</span>
-            </Link>
-            <Link href="/Emp/Homepage/NEW_Form/warehouse-receipt">
-              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Warehouse Receipt</span>
-            </Link>
-            <Link href="/Emp/Homepage/NEW_Form/purchase-order">
-              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Purchase Order</span>
-            </Link>
-            <Link href="/Emp/Homepage/NEW_Form/material-receipt">
-              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Material Receipt</span>
-            </Link>
+          <div className="flex justify-center space-x-1">
+            {[
+              { href: "/Emp/Homepage", label: "Home", icon: Home },
+              { href: "/Emp/Homepage/NEW_Form/warehouse-receipt", label: "Warehouse Receipt", icon: FileText },
+              { href: "/Emp/Homepage/NEW_Form/purchase-order", label: "Purchase Order", icon: ShoppingCart },
+              { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
+            ].map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
+                  <item.icon className="h-5 w-5 mb-1" />
+                  <span className="text-xs text-center">{item.label}</span>
+                </Button>
+              </Link>
+            ))}
           </div>
-          <div className="w-[50px]"></div>
+          <Button 
+            onClick={handleLogout}
+            className="flex items-center"
+            variant="secondary"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
     </nav>
@@ -134,20 +148,20 @@ export default function MaterialReceipt() {
   }, [tableData, additionalTableData])
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Material Receipt Form</h1>
+          <h1 className="text-3xl font-bold text-primary">Material Receipt Form</h1>
         </div>
-        <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <form onSubmit={handleSubmit} className="bg-card shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="warehouseNumber">
+              <label className="block text-sm font-medium mb-2" htmlFor="warehouseNumber">
                 Warehouse Number
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="warehouseNumber"
                 type="text"
                 name="warehouseNumber"
@@ -156,11 +170,11 @@ export default function MaterialReceipt() {
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="client">
+              <label className="block text-sm font-medium mb-2" htmlFor="client">
                 Client
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="client"
                 type="text"
                 name="client"
@@ -169,11 +183,11 @@ export default function MaterialReceipt() {
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="receiptDate">
+              <label className="block text-sm font-medium mb-2" htmlFor="receiptDate">
                 Receipt Date Received
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="receiptDate"
                 type="date"
                 name="receiptDate"
@@ -182,11 +196,11 @@ export default function MaterialReceipt() {
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="po">
+              <label className="block text-sm font-medium mb-2" htmlFor="po">
                 PO
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="po"
                 type="text"
                 name="po"
@@ -198,35 +212,36 @@ export default function MaterialReceipt() {
           <table className="w-full mb-4">
             <thead>
               <tr>
-                <th>Number</th>
-                <th>Type</th>
-                <th>Length</th>
-                <th>Width</th>
-                <th>Weight</th>
-                <th>Location</th>
-                <th>Action</th>
+                <th className="text-left p-2">Number</th>
+                <th className="text-left p-2">Type</th>
+                <th className="text-left p-2">Length</th>
+                <th className="text-left p-2">Width</th>
+                <th className="text-left p-2">Weight</th>
+                <th className="text-left p-2">Location</th>
+                <th className="text-left p-2">Action</th>
               </tr>
             </thead>
             <tbody>
               {tableData.map((row, index) => (
                 <tr key={index}>
                   {Object.keys(row).map((key) => (
-                    <td key={key}>
+                    <td key={key} className="p-2">
                       <input
                         type="text"
                         name={key}
-                        className="w-full p-1 border"
+                        className="w-full p-1 border rounded-md"
                         value={row[key as keyof TableRow]}
                         onChange={(e) => handleTableInputChange(index, key, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, index, key)}
                       />
                     </td>
                   ))}
-                  <td>
+                  <td className="p-2">
                     <Button
                       type="button"
                       onClick={() => handleDeleteRow(index)}
-                      className="p-1"
+                      variant="destructive"
+                      size="icon"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -244,34 +259,35 @@ export default function MaterialReceipt() {
           <table className="w-full mb-4">
             <thead>
               <tr>
-                <th>Item #</th>
-                <th>Description</th>
-                <th>Quantity Order</th>
-                <th>Quantity Received</th>
-                <th>Quantity</th>
-                <th>Action</th>
+                <th className="text-left p-2">Item #</th>
+                <th className="text-left p-2">Description</th>
+                <th className="text-left p-2">Quantity Order</th>
+                <th className="text-left p-2">Quantity Received</th>
+                <th className="text-left p-2">Quantity</th>
+                <th className="text-left p-2">Action</th>
               </tr>
             </thead>
             <tbody>
               {additionalTableData.map((row, index) => (
                 <tr key={index}>
                   {Object.keys(row).map((key) => (
-                    <td key={key}>
+                    <td key={key} className="p-2">
                       <input
                         type="text"
                         name={`${key}Additional`}
-                        className="w-full p-1 border"
+                        className="w-full p-1 border rounded-md"
                         value={row[key as keyof AdditionalTableRow]}
                         onChange={(e) => handleTableInputChange(index, key, e.target.value, true)}
                         onKeyDown={(e) => handleKeyDown(e, index, key, true)}
                       />
                     </td>
                   ))}
-                  <td>
+                  <td className="p-2">
                     <Button
                       type="button"
                       onClick={() => handleDeleteRow(index, true)}
-                      className="p-1"
+                      variant="destructive"
+                      size="icon"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

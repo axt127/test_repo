@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
+import { LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
 
 interface Notification {
   type: 'success' | 'error';
@@ -51,29 +52,43 @@ const initialTableData: TableRow[] = [
 ]
 
 function Navigation() {
+  const router = useRouter()
+
+  const handleLogout = () => {
+    router.push('/login')
+  }
+
   return (
-    <nav className="bg-white shadow-sm mb-4">
+    <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
-            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Express</span>
+            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
+            <span className="text-xl font-bold">WMS Express</span>
           </div>
-          <div className="flex justify-center space-x-4">
-            <Link href="/Emp/Homepage">
-              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Home</span>
-            </Link>
-            <Link href="/Emp/Homepage/NEW_Form/warehouse-receipt">
-              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Warehouse Receipt</span>
-            </Link>
-            <Link href="/Emp/Homepage/NEW_Form/purchase-order">
-              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Purchase Order</span>
-            </Link>
-            <Link href="/Emp/Homepage/NEW_Form/material-receipt">
-              <span className="px-3 py-2 rounded text-gray-700 hover:bg-gray-100">Material Receipt</span>
-            </Link>
+          <div className="flex justify-center space-x-1">
+            {[
+              { href: "/Emp/Homepage", label: "Home", icon: Home },
+              { href: "/Emp/Homepage/NEW_Form/warehouse-receipt", label: "Warehouse Receipt", icon: FileText },
+              { href: "/Emp/Homepage/NEW_Form/purchase-order", label: "Purchase Order", icon: ShoppingCart },
+              { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
+            ].map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
+                  <item.icon className="h-5 w-5 mb-1" />
+                  <span className="text-xs text-center">{item.label}</span>
+                </Button>
+              </Link>
+            ))}
           </div>
-          <div className="w-[50px]"></div>
+          <Button 
+            onClick={handleLogout}
+            className="flex items-center"
+            variant="secondary"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
     </nav>
@@ -89,28 +104,44 @@ export default function WarehouseReceipt() {
   const [lastSubmittedWR, setLastSubmittedWR] = useState<string>('')
 
   useEffect(() => {
-    const storedLastWR = localStorage.getItem('lastSubmittedWR')
-    if (storedLastWR) {
-      setLastSubmittedWR(storedLastWR)
-    }
-    generateNewWRNumber(storedLastWR)
-  }, [])
+    const controller = new AbortController();
+    const signal = controller.signal;
 
-  const generateNewWRNumber = (lastWR: string | null) => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWRIndex', { signal });
+        console.log('Last WR:', response.data);
+        setLastSubmittedWR(response.data);
+        generateNewWRNumber(response.data);
+      } catch (error) {
+        if (axios.isCancel(error)) {
+          console.log('Request canceled:', error.message);
+        } else {
+          console.error('Error fetching last WR:', error);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  const generateNewWRNumber = (lastWR: string) => {
+    const [lastDate, lastSequence] = lastWR.split('-')
     const now = new Date()
     const year = now.getFullYear().toString().slice(-2)
     const month = (now.getMonth() + 1).toString().padStart(2, '0')
     const day = now.getDate().toString().padStart(2, '0')
     
     let sequence = 1
-    if (lastWR) {
-      const [lastDate, lastSequence] = lastWR.split('-')
-      if (lastDate === `${year}${month}${day}`) {
-        sequence = parseInt(lastSequence, 10) + 1
-      }
+    if (lastDate === `${year}${month}${day}`) {
+      sequence = parseInt(lastSequence, 10) + 1
     }
     
-    const newWRNumber = `${year}${month}${day}-${sequence.toString().padStart(3, '0')}`
+    const newWRNumber = `${year}${month}${day}-${sequence.toString().padStart(3, "0")}`
     setFormData(prev => ({ ...prev, wrNumber: newWRNumber }))
   }
 
@@ -135,7 +166,6 @@ export default function WarehouseReceipt() {
       const newRow = { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
       setTableData(prevData => [...prevData, newRow])
       
-      // Use setTimeout to ensure the new row is rendered before focusing
       setTimeout(() => {
         const newRowFirstInput = document.querySelector(`tr:nth-child(${rowIndex + 2}) td:first-child input`) as HTMLInputElement
         if (newRowFirstInput) {
@@ -144,7 +174,6 @@ export default function WarehouseReceipt() {
       }, 0)
     }
   }
-
 
   const resetForm = () => {
     setFormData({ ...initialFormData, wrNumber: formData.wrNumber })
@@ -198,7 +227,7 @@ export default function WarehouseReceipt() {
         localStorage.setItem('lastSubmittedWR', formData.wrNumber)
         generateNewWRNumber(formData.wrNumber)
         resetForm()
-        } else {
+      } else {
         throw new Error('Unexpected response from server')
       }
     } catch (error) {
@@ -220,54 +249,57 @@ export default function WarehouseReceipt() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="container mx-auto p-4">
+
+      <main className="container mx-auto px-4 py-8">
         {notification && (
-          <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`} role="alert">
             {notification.message}
           </div>
         )}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Warehouse Receipt Form</h1>
           {lastSubmittedWR && (
-            <p className="text-sm text-gray-600">Last submitted WR: {lastSubmittedWR}</p>
+            <p className="text-sm text-muted-foreground">Last submitted WR: {lastSubmittedWR}</p>
           )}
         </div>
-        <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-          <div className="grid grid-cols-2 gap-4 mb-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="wrNumber">
+              <label className="block text-sm font-medium mb-1" htmlFor="wrNumber">
                 WR Number
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md bg-muted text-muted-foreground"
                 id="wrNumber"
                 type="text"
                 name="wrNumber"
                 value={formData.wrNumber}
                 readOnly
+                aria-readonly="true"
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="client">
+              <label className="block text-sm font-medium mb-1" htmlFor="client">
                 Client
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="client"
                 type="text"
                 name="client"
                 value={formData.client}
                 onChange={handleInputChange}
+                required
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="po">
+              <label className="block text-sm font-medium mb-1" htmlFor="po">
                 PO#
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="po"
                 type="text"
                 name="po"
@@ -276,24 +308,25 @@ export default function WarehouseReceipt() {
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="carrier">
+              <label className="block text-sm font-medium mb-1" htmlFor="carrier">
                 Carrier
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="carrier"
                 type="text"
                 name="carrier"
                 value={formData.carrier}
                 onChange={handleInputChange}
+                required
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="trackingNumber">
+              <label className="block text-sm font-medium mb-1" htmlFor="trackingNumber">
                 Tracking Number
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="trackingNumber"
                 type="text"
                 name="trackingNumber"
@@ -302,58 +335,62 @@ export default function WarehouseReceipt() {
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="receivedBy">
+              <label className="block text-sm font-medium mb-1" htmlFor="receivedBy">
                 Received By
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="receivedBy"
                 type="text"
                 name="receivedBy"
                 value={formData.receivedBy}
                 onChange={handleInputChange}
+                required
               />
             </div>
           </div>
-          <div className="mb-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="form-checkbox"
-                checked={formData.hazmat === 'yes'}
-                onChange={handleCheckboxChange}
-              />
-              <span className="ml-2">Hazmat</span>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="hazmat"
+              className="rounded border-gray-300 text-primary focus:ring-primary"
+              checked={formData.hazmat === 'yes'}
+              onChange={handleCheckboxChange}
+            />
+            <label htmlFor="hazmat" className="text-sm font-medium">
+              Hazmat
             </label>
           </div>
           {formData.hazmat === 'yes' && (
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="hazmatCode">
+            <div>
+              <label className="block text-sm font-medium mb-1" htmlFor="hazmatCode">
                 Hazmat Code
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="w-full p-2 border rounded-md"
                 id="hazmatCode"
                 type="text"
                 name="hazmatCode"
                 value={formData.hazmatCode}
                 onChange={handleInputChange}
+                required
               />
             </div>
           )}
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="notes">
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="notes">
               Notes
             </label>
             <textarea
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="w-full p-2 border rounded-md"
               id="notes"
               name="notes"
               value={formData.notes}
               onChange={handleInputChange}
+              rows={3}
             />
           </div>
-          <div className="mb-4">
+          <div>
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-xl font-bold">Box Details</h2>
               <Button 
@@ -363,49 +400,50 @@ export default function WarehouseReceipt() {
                 Add Row
               </Button>
             </div>
-            <table className="w-full border-separate border-spacing-4">
-              <thead>
-                <tr>
-                  <th className="text-left pb-3 px-3 border-b">Number</th>
-                  <th className="text-left pb-3 px-3 border-b">Type</th>
-                  <th className="text-left pb-3 px-3 border-b">Length</th>
-                  <th className="text-left pb-3 px-3 border-b">Width</th>
-                  <th className="text-left pb-3 px-3 border-b">Height</th>
-                  <th className="text-left pb-3 px-3 border-b">Weight</th>
-                  <th className="text-left pb-3 px-3 border-b">Location</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {Object.keys(row).map((key, fieldIndex) => (
-                      <td key={key}>
-                        <input
-                          type="text"
-                          className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none"
-                          value={row[key as keyof typeof row]}
-                          onChange={(e) => handleTableInputChange(rowIndex, key, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, rowIndex, fieldIndex)}
-                        />
-                      </td>
-                    ))}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2 border-b">Number</th>
+                    <th className="text-left p-2 border-b">Type</th>
+                    <th className="text-left p-2 border-b">Length</th>
+                    <th className="text-left p-2 border-b">Width</th>
+                    <th className="text-left p-2 border-b">Height</th>
+                    <th className="text-left p-2 border-b">Weight</th>
+                    <th className="text-left p-2 border-b">Location</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {tableData.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {Object.keys(row).map((key, fieldIndex) => (
+                        <td key={key} className="p-2">
+                          <input
+                            type="text"
+                            className="w-full p-2 border rounded-md"
+                            value={row[key as keyof typeof row]}
+                            onChange={(e) => handleTableInputChange(rowIndex, key, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, rowIndex, fieldIndex)}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="flex items-center justify-end">
-            <button
+          <div className="flex justify-end">
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isSubmitting ? 
- 'opacity-50 cursor-not-allowed' : ''}`}
+              className={isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </main>
     </div>
   )
 }
