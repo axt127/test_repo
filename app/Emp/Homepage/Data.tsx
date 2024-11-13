@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ChevronLeft, Info, LogOut, Home, FileText, ShoppingCart, Package, Edit } from 'lucide-react'
+import { ChevronLeft, Info, LogOut, Home, FileText, ShoppingCart, Package, Edit, X } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { motion } from "framer-motion"
 import Link from 'next/link'
 import Image from 'next/image'
@@ -32,6 +33,7 @@ type WRDetails = {
     location: string
     weight: number
   }[]
+  images: string[]
 }
 
 function Navigation() {
@@ -109,6 +111,10 @@ export default function ClientData() {
       const response = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${encodeURIComponent(wrId)}`)
       const data = await response.json()
       const [details, itemCount, ...items] = data
+
+      const imagesResponse = await fetch(`https://zol0yn9wc2.execute-api.us-east-1.amazonaws.com/prod/getPhoto?wr_id=${encodeURIComponent(wrId)}`)
+      const imagesData = await imagesResponse.json()
+
       setSelectedWR({
         id: details[0],
         client: details[1],
@@ -128,7 +134,8 @@ export default function ClientData() {
           height: item[4],
           location: item[5],
           weight: item[6]
-        }))
+        })),
+        images: imagesData
       })
     } catch (error) {
       console.error('Error fetching WR details:', error)
@@ -260,6 +267,48 @@ export default function ClientData() {
                         ))}
                       </TableBody>
                     </Table>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Images</h3>
+                    {selectedWR.images.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+                        {selectedWR.images.map((imageUrl, index) => (
+                          <Dialog key={index}>
+                            <DialogTrigger asChild>
+                              <button className="relative w-full pt-[100%] overflow-hidden rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                <Image
+                                  src={imageUrl}
+                                  alt={`Warehouse Receipt Image ${index + 1}`}
+                                  fill
+                                  style={{ objectFit: 'cover' }}
+                                  className="rounded-md transition-transform hover:scale-105"
+                                />
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0">
+                              <div className="relative w-full h-full flex items-center justify-center">
+                                <Image
+                                  src={imageUrl}
+                                  alt={`Enlarged Warehouse Receipt Image ${index + 1}`}
+                                  width={1200}
+                                  height={1200}
+                                  style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
+                                />
+                                <button
+                                  className="absolute top-2 right-2 bg-background/80 rounded-full p-2"
+                                  onClick={() => document.body.click()}
+                                  aria-label="Close enlarged image"
+                                >
+                                  <X className="h-6 w-6" />
+                                </button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No images available for this warehouse receipt.</p>
+                    )}
                   </div>
                 </div>
               ) : (
