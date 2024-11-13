@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Trash2, LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 function Navigation() {
   const router = useRouter()
@@ -56,16 +58,19 @@ interface TableRow {
   type: string;
   length: string;
   width: string;
+  height: string;
   weight: string;
   location: string;
 }
 
 interface AdditionalTableRow {
   itemNumber: string;
+  partId: string;
   description: string;
   quantityOrder: string;
   quantityReceived: string;
   quantity: string;
+  boxId: string;
 }
 
 export default function MaterialReceipt() {
@@ -74,20 +79,102 @@ export default function MaterialReceipt() {
     warehouseNumber: '',
     client: '',
     receiptDate: '',
-    po: ''
+    po: '',
+    carrier: '',
+    tracking: ''
   })
 
   const [tableData, setTableData] = useState<TableRow[]>([
-    { number: '', type: '', length: '', width: '', weight: '', location: '' }
+    { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
   ])
 
   const [additionalTableData, setAdditionalTableData] = useState<AdditionalTableRow[]>([
-    { itemNumber: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '' }
+    { itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }
   ])
+
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+
+    if (name === 'warehouseNumber' && value.trim() !== '') {
+      fetchWarehouseData(value)
+    }
+  }
+
+  const fetchWarehouseData = async (wrId: string) => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${wrId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch warehouse data')
+      }
+      const data = await response.json()
+      
+      if (data && data.length >= 3) {
+        const [wrInfo, itemCount, ...items] = data
+        
+        setFormData(prev => ({
+          ...prev,
+          client: wrInfo[1] || '',
+          receiptDate: new Date(wrInfo[4]).toISOString().split('T')[0] || '',
+          po: wrInfo[9] || '',
+          carrier: wrInfo[2] || '',
+          tracking: wrInfo[3] || ''
+        }))
+
+        setTableData(items.map((item: any) => ({
+          number: item[0] || '',
+          type: item[1] || '',
+          length: item[2]?.toString() || '',
+          width: item[3]?.toString() || '',
+          height: item[4]?.toString() || '',
+          weight: item[6]?.toString() || '',
+          location: item[5] || ''
+        })))
+
+        // Fetch PO data after setting the PO number
+        if (wrInfo[9]) {
+          fetchPOData(wrInfo[9])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching warehouse data:', error)
+      toast.error('Failed to fetch warehouse data. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchPOData = async (poNumber: string) => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${poNumber}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch PO data')
+      }
+      const data = await response.json()
+      
+      if (data && data.length >= 3) {
+        const [poInfo, itemCount, ...items] = data
+        
+        setAdditionalTableData(items.map((item: any) => ({
+          itemNumber: item[2]?.toString() || '',
+          partId: item[3] || '',
+          description: item[4] || '',
+          quantityOrder: item[5]?.toString() || '',
+          quantityReceived: item[7]?.toString() || '',
+          quantity: '',
+          boxId: ''
+        })))
+      }
+    } catch (error) {
+      console.error('Error fetching PO data:', error)
+      toast.error('Failed to fetch PO data. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleTableInputChange = (index: number, field: string, value: string, isAdditional: boolean = false) => {
@@ -104,9 +191,9 @@ export default function MaterialReceipt() {
 
   const handleAddRow = (isAdditional: boolean = false) => {
     if (isAdditional) {
-      setAdditionalTableData([...additionalTableData, { itemNumber: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '' }])
+      setAdditionalTableData([...additionalTableData, { itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }])
     } else {
-      setTableData([...tableData, { number: '', type: '', length: '', width: '', weight: '', location: '' }])
+      setTableData([...tableData, { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])
     }
   }
 
@@ -121,7 +208,7 @@ export default function MaterialReceipt() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: string, isAdditional: boolean = false) => {
     if (e.key === 'Tab' && !e.shiftKey && 
         index === (isAdditional ? additionalTableData.length : tableData.length) - 1 && 
-        field === (isAdditional ? 'quantity' : 'location')) {
+        field === (isAdditional ? 'boxId' : 'location')) {
       e.preventDefault()
       handleAddRow(isAdditional)
       setTimeout(() => {
@@ -134,12 +221,55 @@ export default function MaterialReceipt() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form Data:', formData)
-    console.log('Table Data:', tableData)
-    console.log('Additional Table Data:', additionalTableData)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    alert('Material Receipt submitted successfully!')
-    router.push('/homepage')
+    
+    // Format the data as required by the API
+    const formattedData = [
+      [formData.warehouseNumber, formData.client, ""], // wr_id, entered_by, notes
+      ...additionalTableData.map(row => [
+        formData.warehouseNumber,
+        row.quantity,
+        row.boxId,
+        row.itemNumber
+      ])
+    ]
+
+    try {
+      const response = await fetch('https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/putMR', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formattedData),
+      })
+
+      if (response.ok) {
+        toast.success('Material Receipt submitted successfully!', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        })
+        // Optionally, reset form or redirect
+        // setFormData({ warehouseNumber: '', client: '', receiptDate: '', po: '', carrier: '', tracking: '' })
+        // setTableData([{ number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])
+        // setAdditionalTableData([{ itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }])
+        // router.push('/homepage')
+      } else {
+        throw new Error('Failed to submit Material Receipt')
+      }
+    } catch (error) {
+      toast.error('Failed to submit Material Receipt. Please try again.', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      })
+      console.error('Error:', error)
+    }
   }
 
   useEffect(() => {
@@ -180,6 +310,7 @@ export default function MaterialReceipt() {
                 name="client"
                 value={formData.client}
                 onChange={handleInputChange}
+                readOnly
               />
             </div>
             <div>
@@ -193,6 +324,7 @@ export default function MaterialReceipt() {
                 name="receiptDate"
                 value={formData.receiptDate}
                 onChange={handleInputChange}
+                readOnly
               />
             </div>
             <div>
@@ -206,109 +338,149 @@ export default function MaterialReceipt() {
                 name="po"
                 value={formData.po}
                 onChange={handleInputChange}
+                readOnly
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2" htmlFor="carrier">
+                Carrier
+              </label>
+              <input
+                className="w-full p-2 border rounded-md"
+                id="carrier"
+                type="text"
+                name="carrier"
+                value={formData.carrier}
+                onChange={handleInputChange}
+                readOnly
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2" htmlFor="tracking">
+                Tracking #
+              </label>
+              <input
+                className="w-full p-2 border rounded-md"
+                id="tracking"
+                type="text"
+                name="tracking"
+                value={formData.tracking}
+                onChange={handleInputChange}
+                readOnly
               />
             </div>
           </div>
-          <table className="w-full mb-4">
-            <thead>
-              <tr>
-                <th className="text-left p-2">Number</th>
-                <th className="text-left p-2">Type</th>
-                <th className="text-left p-2">Length</th>
-                <th className="text-left p-2">Width</th>
-                <th className="text-left p-2">Weight</th>
-                <th className="text-left p-2">Location</th>
-                <th className="text-left p-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableData.map((row, index) => (
-                <tr key={index}>
-                  {Object.keys(row).map((key) => (
-                    <td key={key} className="p-2">
-                      <input
-                        type="text"
-                        name={key}
-                        className="w-full p-1 border rounded-md"
-                        value={row[key as keyof TableRow]}
-                        onChange={(e) => handleTableInputChange(index, key, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, index, key)}
-                      />
-                    </td>
+          {isLoading ? (
+            <div className="text-center py-4">Loading...</div>
+          ) : (
+            <>
+              <table className="w-full mb-4">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2">Number</th>
+                    <th className="text-left p-2">Type</th>
+                    <th className="text-left p-2">Length</th>
+                    <th className="text-left p-2">Width</th>
+                    <th className="text-left p-2">Height</th>
+                    <th className="text-left p-2">Weight</th>
+                    <th className="text-left p-2">Location</th>
+                    <th className="text-left p-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableData.map((row, index) => (
+                    <tr key={index}>
+                      {Object.keys(row).map((key) => (
+                        <td key={key} className="p-2">
+                          <input
+                            type="text"
+                            name={key}
+                            className="w-full p-1 border rounded-md"
+                            value={row[key as keyof TableRow]}
+                            onChange={(e) => handleTableInputChange(index, key, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, index, key)}
+                          />
+                        </td>
+                      ))}
+                      <td className="p-2">
+                        <Button
+                          type="button"
+                          onClick={() => handleDeleteRow(index)}
+                          variant="destructive"
+                          size="icon"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
                   ))}
-                  <td className="p-2">
-                    <Button
-                      type="button"
-                      onClick={() => handleDeleteRow(index)}
-                      variant="destructive"
-                      size="icon"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex justify-between items-center mb-4">
-            <Button type="button" onClick={() => handleAddRow()}>
-              Add Row
-            </Button>
-          </div>
-          
-          <table className="w-full mb-4">
-            <thead>
-              <tr>
-                <th className="text-left p-2">Item #</th>
-                <th className="text-left p-2">Description</th>
-                <th className="text-left p-2">Quantity Order</th>
-                <th className="text-left p-2">Quantity Received</th>
-                <th className="text-left p-2">Quantity</th>
-                <th className="text-left p-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {additionalTableData.map((row, index) => (
-                <tr key={index}>
-                  {Object.keys(row).map((key) => (
-                    <td key={key} className="p-2">
-                      <input
-                        type="text"
-                        name={`${key}Additional`}
-                        className="w-full p-1 border rounded-md"
-                        value={row[key as keyof AdditionalTableRow]}
-                        onChange={(e) => handleTableInputChange(index, key, e.target.value, true)}
-                        onKeyDown={(e) => handleKeyDown(e, index, key, true)}
-                      />
-                    </td>
+                </tbody>
+              </table>
+              <div className="flex justify-between items-center mb-4">
+                <Button type="button" onClick={() => handleAddRow()}>
+                  Add Row
+                </Button>
+              </div>
+              
+              <table className="w-full mb-4">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2">Item #</th>
+                    <th className="text-left p-2">Part ID</th>
+                    <th className="text-left p-2">Description</th>
+                    <th className="text-left p-2">Quantity Order</th>
+                    <th className="text-left p-2">Quantity Received</th>
+                    <th className="text-left p-2">Total Quantity</th>
+                    <th className="text-left p-2">Box ID</th>
+                    <th className="text-left p-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {additionalTableData.map((row, index) => (
+                    <tr key={index}>
+                      {Object.keys(row).map((key) => (
+                        <td key={key} className="p-2">
+                          <input
+                            type="text"
+                            name={`${key}Additional`}
+                            className="w-full p-1 border rounded-md"
+                            value={row[key as keyof AdditionalTableRow]}
+                            onChange={(e) => handleTableInputChange(index, key, e.target.value, true)}
+                            onKeyDown={(e) => handleKeyDown(e, index, key, true)}
+                            readOnly={['itemNumber', 'partId', 'description', 'quantityOrder', 'quantityReceived'].includes(key)}
+                          />
+                        </td>
+                      ))}
+                      <td className="p-2">
+                        <Button
+                          type="button"
+                          onClick={() => handleDeleteRow(index, true)}
+                          variant="destructive"
+                          size="icon"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
                   ))}
-                  <td className="p-2">
-                    <Button
-                      type="button"
-                      onClick={() => handleDeleteRow(index, true)}
-                      variant="destructive"
-                      size="icon"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex justify-between items-center mb-4">
-            <Button type="button" onClick={() => handleAddRow(true)}>
-              Add Row
-            </Button>
-          </div>
-          
-          <div className="flex items-center justify-end">
-            <Button type="submit">
-              Submit
-            </Button>
-          </div>
+                </tbody>
+              </table>
+              <div className="flex justify-between items-center mb-4">
+                <Button type="button" onClick={() => handleAddRow(true)}>
+                  Add Row
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-end">
+                <Button type="submit">
+                  Submit
+                </Button>
+              </div>
+            </>
+          )}
         </form>
       </div>
+      <ToastContainer position="bottom-right" />
     </div>
   )
 }

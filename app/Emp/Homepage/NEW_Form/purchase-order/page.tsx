@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableRow, TableHeader } from "@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 interface Item {
   itemNumber: string
@@ -97,6 +99,7 @@ export default function PurchaseOrder() {
   const addItem = () => {
     const newItemNumber = (items.length + 1).toString()
     setItems([...items, { itemNumber: newItemNumber, partNumber: '', description: '', quantity: 0, costPerUnit: 0 }])
+    toast.info('New item added to the purchase order.')
   }
 
   const removeItem = (index: number) => {
@@ -105,6 +108,7 @@ export default function PurchaseOrder() {
       itemNumber: (i + 1).toString()
     }));
     setItems(newItems);
+    toast.warn('Item removed from the purchase order.')
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
@@ -133,15 +137,15 @@ export default function PurchaseOrder() {
         parseInt(item.itemNumber),
         item.partNumber,
         item.description,
-        item.quantity,
-        item.costPerUnit
+        parseInt(item.quantity.toString()),
+        parseFloat(item.costPerUnit.toString())
       ])
     ]
 
     try {
       const response = await axios.post('https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/PutNewPO', poData)
       console.log('API Response:', response.data)
-      console.log('Purchase Order submitted successfully')
+      toast.success('Purchase Order submitted successfully')
 
       // Reset form after successful submission
       setPOInfo({
@@ -156,7 +160,7 @@ export default function PurchaseOrder() {
       setItems([{ itemNumber: '1', partNumber: '', description: '', quantity: 0, costPerUnit: 0 }])
     } catch (error) {
       console.error('Error submitting Purchase Order:', error)
-      console.log('Failed to submit Purchase Order. Please try again.')
+      toast.error('Failed to submit Purchase Order. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -312,6 +316,7 @@ export default function PurchaseOrder() {
           {isSubmitting ? 'Submitting...' : 'Save Purchase Order'}
         </Button>
       </form>
+      <ToastContainer position="bottom-right" />
     </div>
   )
 }

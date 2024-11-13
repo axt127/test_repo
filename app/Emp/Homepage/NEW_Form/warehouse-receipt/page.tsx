@@ -6,12 +6,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
-
-interface Notification {
-  type: 'success' | 'error';
-  message: string;
-}
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 interface TableRow {
   number: string;
@@ -95,13 +93,12 @@ function Navigation() {
   )
 }
 
-export default function WarehouseReceipt() {
+export default function Component() {
   const router = useRouter()
-  const [notification, setNotification] = useState<Notification | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [tableData, setTableData] = useState<TableRow[]>(initialTableData)
-  const [lastSubmittedWR, setLastSubmittedWR] = useState<string>('')
+  const [clients, setClients] = useState<string[]>([])
 
   useEffect(() => {
     const controller = new AbortController();
@@ -109,15 +106,19 @@ export default function WarehouseReceipt() {
 
     const fetchData = async () => {
       try {
-        const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWRIndex', { signal });
-        console.log('Last WR:', response.data);
-        setLastSubmittedWR(response.data);
-        generateNewWRNumber(response.data);
+        const [wrResponse, clientsResponse] = await Promise.all([
+          axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWRIndex', { signal }),
+          axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-clients', { signal })
+        ]);
+        console.log('Last WR:', wrResponse.data);
+        generateNewWRNumber(wrResponse.data);
+        setClients(clientsResponse.data);
       } catch (error) {
         if (axios.isCancel(error)) {
           console.log('Request canceled:', error.message);
         } else {
-          console.error('Error fetching last WR:', error);
+          console.error('Error fetching data:', error);
+          toast.error('Failed to fetch initial data. Please refresh the page.');
         }
       }
     };
@@ -130,18 +131,7 @@ export default function WarehouseReceipt() {
   }, []);
 
   const generateNewWRNumber = (lastWR: string) => {
-    const [lastDate, lastSequence] = lastWR.split('-')
-    const now = new Date()
-    const year = now.getFullYear().toString().slice(-2)
-    const month = (now.getMonth() + 1).toString().padStart(2, '0')
-    const day = now.getDate().toString().padStart(2, '0')
-    
-    let sequence = 1
-    if (lastDate === `${year}${month}${day}`) {
-      sequence = parseInt(lastSequence, 10) + 1
-    }
-    
-    const newWRNumber = `${year}${month}${day}-${sequence.toString().padStart(3, "0")}`
+    const newWRNumber = lastWR
     setFormData(prev => ({ ...prev, wrNumber: newWRNumber }))
   }
 
@@ -180,10 +170,20 @@ export default function WarehouseReceipt() {
     setTableData(initialTableData)
   }
 
+  const fetchNewWRNumber = async () => {
+    try {
+      const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWRIndex');
+      console.log('New WR:', response.data);
+      generateNewWRNumber(response.data);
+    } catch (error) {
+      console.error('Error fetching new WR:', error);
+      toast.error('Failed to fetch new WR number. Please try again.');
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    setNotification(null)
     
     const formattedData = [
       [
@@ -222,11 +222,9 @@ export default function WarehouseReceipt() {
       console.log('API Response:', response.data)
 
       if (response.status === 200) {
-        setNotification({ type: 'success', message: 'Warehouse receipt submitted successfully!' })
-        setLastSubmittedWR(formData.wrNumber)
-        localStorage.setItem('lastSubmittedWR', formData.wrNumber)
-        generateNewWRNumber(formData.wrNumber)
+        toast.success('Warehouse receipt submitted successfully!')
         resetForm()
+        fetchNewWRNumber()
       } else {
         throw new Error('Unexpected response from server')
       }
@@ -242,10 +240,14 @@ export default function WarehouseReceipt() {
           errorMessage = `Error: ${error.message}`
         }
       }
-      setNotification({ type: 'error', message: errorMessage })
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleClientChange = (value: string) => {
+    setFormData(prev => ({ ...prev, client: value }))
   }
 
   return (
@@ -253,16 +255,8 @@ export default function WarehouseReceipt() {
       <Navigation />
 
       <main className="container mx-auto px-4 py-8">
-        {notification && (
-          <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`} role="alert">
-            {notification.message}
-          </div>
-        )}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Warehouse Receipt Form</h1>
-          {lastSubmittedWR && (
-            <p className="text-sm text-muted-foreground">Last submitted WR: {lastSubmittedWR}</p>
-          )}
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -284,15 +278,18 @@ export default function WarehouseReceipt() {
               <label className="block text-sm font-medium mb-1" htmlFor="client">
                 Client
               </label>
-              <input
-                className="w-full p-2 border rounded-md"
-                id="client"
-                type="text"
-                name="client"
-                value={formData.client}
-                onChange={handleInputChange}
-                required
-              />
+              <Select onValueChange={handleClientChange} value={formData.client}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client} value={client}>
+                      {client}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1" htmlFor="po">
@@ -394,7 +391,10 @@ export default function WarehouseReceipt() {
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-xl font-bold">Box Details</h2>
               <Button 
-                onClick={() => setTableData(prevData => [...prevData, { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])} 
+                onClick={() => {
+                  setTableData(prevData => [...prevData, { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])
+                  toast.info('New row added to box details.')
+                }} 
                 type="button"
               >
                 Add Row
@@ -444,6 +444,7 @@ export default function WarehouseReceipt() {
           </div>
         </form>
       </main>
+      <ToastContainer position="bottom-right" />
     </div>
   )
 }
