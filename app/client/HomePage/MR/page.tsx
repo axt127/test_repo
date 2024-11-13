@@ -1,34 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import axios from 'axios'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Trash2 } from 'lucide-react'
+import { X, Home, FileText, ShoppingCart, Package } from 'lucide-react'
+
+interface MaterialReceipt {
+  mrId: string; // Changed from wrId to mrId
+  enteredBy: string;
+  notes: string;
+  items: {
+    wrId: string;
+    qtyReceived: string;
+    boxId: string;
+    poItemId: string;
+  }[];
+}
 
 function Navigation() {
   return (
-    <nav className="bg-white shadow-sm mb-4">
+    <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
-            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} />
-            <span className="text-lg font-semibold">WMS Xpress</span>
+            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
+            <span className="text-xl font-bold">WMS Express</span>
           </div>
-          <div className="flex justify-center space-x-4">
-            <Link href="/client/HomePage">
-              <Button variant="outline">Home</Button>
-            </Link>
-            <Link href="/client/HomePage/WR">
-              <Button variant="outline">Warehouse Receipt</Button>
-            </Link>
-            <Link href="/client/HomePage/PO">
-              <Button variant="outline">Purchase Order</Button>
-            </Link>
-            <Link href="/client/HomePage/MR">
-              <Button variant="outline">Material Receipt</Button>
-            </Link>
+          <div className="flex justify-center space-x-1">
+            {[
+              { href: "/client/HomePage", label: "Home", icon: Home },
+              { href: "/client/HomePage/WR", label: "Warehouse Receipt", icon: FileText },
+              { href: "/client/HomePage/PO", label: "Purchase Order", icon: ShoppingCart },
+              { href: "/client/HomePage/MR", label: "Material Receipt", icon: Package },
+            ].map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
+                  <item.icon className="h-5 w-5 mb-1" />
+                  <span className="text-xs text-center">{item.label}</span>
+                </Button>
+              </Link>
+            ))}
           </div>
           <div className="w-[50px]"></div>
         </div>
@@ -37,213 +52,222 @@ function Navigation() {
   )
 }
 
-interface TableRow {
-  number: string;
-  type: string;
-  length: string;
-  width: string;
-  weight: string;
-  location: string;
-}
-
-interface AdditionalTableRow {
-  itemNumber: string;
-  description: string;
-  quantityOrder: string;
-  quantityReceived: string;
-  quantity: string;
-}
-
 export default function MaterialReceiptViewer() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
-  const [formData, setFormData] = useState({
-    warehouseNumber: '',
-    client: '',
-    receiptDate: '',
-    po: ''
-  })
-
-  const [tableData, setTableData] = useState<TableRow[]>([
-    { number: '', type: '', length: '', width: '', weight: '', location: '' }
-  ])
-
-  const [additionalTableData, setAdditionalTableData] = useState<AdditionalTableRow[]>([
-    { itemNumber: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '' }
-  ])
-
+  const [materialReceipt, setMaterialReceipt] = useState<MaterialReceipt | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [dataLoaded, setDataLoaded] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [hasSearched, setHasSearched] = useState(false)
 
-  const handleSearch = async () => {
+  const fetchMaterialReceipt = useCallback(async (mrNumber: string) => {
     setIsLoading(true)
+    setError(null)
+    setHasSearched(true)
     try {
-      // Simulating API call with setTimeout
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await axios.get(`https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/getMR?wr_id=${mrNumber}`)
+      const data = response.data
 
-      const mockData = {
-        formData: {
-          warehouseNumber: 'WH001',
-          client: 'Acme Corp',
-          receiptDate: '2023-06-30',
-          po: 'PO12345'
-        },
-        tableData: [
-          { number: '1', type: 'Box', length: '10', width: '10', weight: '5', location: 'A1' },
-          { number: '2', type: 'Pallet', length: '48', width: '40', weight: '500', location: 'B2' }
-        ],
-        additionalTableData: [
-          { itemNumber: 'ITEM001', description: 'Widget A', quantityOrder: '100', quantityReceived: '95', quantity: '95' },
-          { itemNumber: 'ITEM002', description: 'Gadget B', quantityOrder: '50', quantityReceived: '50', quantity: '50' }
-        ]
+      if (Array.isArray(data) && data.length >= 2) {
+        const [headerData, ...itemsData] = data
+
+        setMaterialReceipt({
+          mrId: headerData[0] || '', // Changed from wrId to mrId
+          enteredBy: headerData[1] || '',
+          notes: headerData[2] || '',
+          items: itemsData.map(item => ({
+            wrId: item[0] || '',
+            qtyReceived: item[1] || '',
+            boxId: item[2] || '',
+            poItemId: item[3] || ''
+          }))
+        })
+      } else {
+        throw new Error('Invalid response format')
       }
-
-      setFormData(mockData.formData)
-      setTableData(mockData.tableData)
-      setAdditionalTableData(mockData.additionalTableData)
-      setDataLoaded(true)
     } catch (error) {
       console.error('Error fetching material receipt:', error)
-      // Handle error (e.g., show error message to user)
+      setError('Failed to fetch material receipt. Please try again.')
+      setMaterialReceipt(null)
     } finally {
       setIsLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    const mrNumber = searchParams.get('mrNumber')
+    if (mrNumber) {
+      setSearchTerm(mrNumber)
+      fetchMaterialReceipt(mrNumber)
+    }
+  }, [searchParams, fetchMaterialReceipt])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+  }
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (searchTerm.trim()) {
+      fetchMaterialReceipt(searchTerm.trim())
+    }
+  }
+
+  const handleClear = () => {
+    setSearchTerm('')
+    setMaterialReceipt(null)
+    setError(null)
+    setHasSearched(false)
   }
 
   const inputClass = "shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline " + 
-    (dataLoaded ? "text-gray-700 bg-white" : "text-gray-400 bg-gray-100")
+    (hasSearched ? "text-gray-700 bg-white" : "text-gray-400 bg-gray-100")
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Material Receipt Viewer</h1>
         </div>
-        <div className="flex gap-4 mb-6">
-          <Input
-            type="text"
-            placeholder="Enter Material Receipt Number"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-grow"
-          />
-          <Button onClick={handleSearch} disabled={isLoading}>
+        <form onSubmit={handleSearch} className="flex gap-4 mb-6">
+          <div className="relative flex-grow">
+            <Input
+              type="text"
+              placeholder="Enter MR Number"
+              value={searchTerm}
+              onChange={handleInputChange}
+              className="pr-10"
+              aria-label="Material Receipt Number"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+          <Button type="submit" disabled={isLoading}>
             {isLoading ? 'Searching...' : 'Search'}
           </Button>
-        </div>
+        </form>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
         <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="warehouseNumber">
-                Warehouse Number
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="mrId">
+                MR ID
               </label>
               <input
                 className={inputClass}
-                id="warehouseNumber"
+                id="mrId"
                 type="text"
-                name="warehouseNumber"
-                value={formData.warehouseNumber}
+                name="mrId"
+                value={materialReceipt?.mrId || ''}
                 readOnly
               />
             </div>
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="client">
-                Client
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="enteredBy">
+                Entered By
               </label>
               <input
                 className={inputClass}
-                id="client"
+                id="enteredBy"
                 type="text"
-                name="client"
-                value={formData.client}
-                readOnly
-              />
-            </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="receiptDate">
-                Receipt Date Received
-              </label>
-              <input
-                className={inputClass}
-                id="receiptDate"
-                type="date"
-                name="receiptDate"
-                value={formData.receiptDate}
-                readOnly
-              />
-            </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="po">
-                PO
-              </label>
-              <input
-                className={inputClass}
-                id="po"
-                type="text"
-                name="po"
-                value={formData.po}
+                name="enteredBy"
+                value={materialReceipt?.enteredBy || ''}
                 readOnly
               />
             </div>
           </div>
-          <table className="w-full mb-4">
-            <thead>
-              <tr>
-                <th>Number</th>
-                <th>Type</th>
-                <th>Length</th>
-                <th>Width</th>
-                <th>Weight</th>
-                <th>Location</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableData.map((row, index) => (
-                <tr key={index}>
-                  {Object.keys(row).map((key) => (
-                    <td key={key}>
-                      <input
-                        type="text"
-                        name={key}
-                        className={`w-full p-1 border ${inputClass}`}
-                        value={row[key as keyof TableRow]}
-                        readOnly
-                      />
-                    </td>
-                  ))}
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="notes">
+              Notes
+            </label>
+            <textarea
+              className={`${inputClass} h-24`}
+              id="notes"
+              name="notes"
+              value={materialReceipt?.notes || ''}
+              readOnly
+            />
+          </div>
+          <div className="mb-4">
+            <h2 className="text-xl font-bold mb-2">Item Details</h2>
+            <table className="w-full border-separate border-spacing-4">
+              <thead>
+                <tr>
+                  <th className="text-left pb-3 px-3 border-b">WR ID</th>
+                  <th className="text-left pb-3 px-3 border-b">Quantity Received</th>
+                  <th className="text-left pb-3 px-3 border-b">Box ID</th>
+                  <th className="text-left pb-3 px-3 border-b">PO Item ID</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          <table className="w-full mb-4">
-            <thead>
-              <tr>
-                <th>Item #</th>
-                <th>Description</th>
-                <th>Quantity Order</th>
-                <th>Quantity Received</th>
-                <th>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {additionalTableData.map((row, index) => (
-                <tr key={index}>
-                  {Object.keys(row).map((key) => (
-                    <td key={key}>
-                      <input
-                        type="text"
-                        name={`${key}Additional`}
-                        className={`w-full p-1 border ${inputClass}`}
-                        value={row[key as keyof AdditionalTableRow]}
-                        readOnly
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {hasSearched && materialReceipt?.items ? (
+                  materialReceipt.items.map((item, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          type="text"
+                          className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none text-gray-700 bg-white"
+                          value={item.wrId}
+                          readOnly
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none text-gray-700 bg-white"
+                          value={item.qtyReceived}
+                          readOnly
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none text-gray-700 bg-white"
+                          value={item.boxId}
+                          readOnly
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none text-gray-700 bg-white"
+                          value={item.poItemId}
+                          readOnly
+                        />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    {Array(4).fill(0).map((_, index) => (
+                      <td key={index}>
+                        <input
+                          type="text"
+                          className="w-full p-2 border-2 rounded focus:border-blue-500 focus:outline-none text-gray-400 bg-gray-100"
+                          value=""
+                          readOnly
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

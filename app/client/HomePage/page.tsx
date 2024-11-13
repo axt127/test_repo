@@ -4,12 +4,50 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Edit, LogOut } from 'lucide-react'
+import { Edit, LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import axios from 'axios'
 
 type ReceiptData = [string, string, boolean]
+
+function Navigation({ handleLogout }: { handleLogout: () => void }) {
+  return (
+    <nav className="bg-primary text-primary-foreground shadow-md mb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center space-x-2">
+            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
+            <span className="text-xl font-bold">WMS Express</span>
+          </div>
+          <div className="flex justify-center space-x-1">
+            {[
+              { href: "/client/HomePage", label: "Home", icon: Home },
+              { href: "/client/HomePage/WR", label: "Warehouse Receipt", icon: FileText },
+              { href: "/client/HomePage/PO", label: "Purchase Order", icon: ShoppingCart },
+              { href: "/client/HomePage/MR", label: "Material Receipt", icon: Package },
+            ].map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
+                  <item.icon className="h-5 w-5 mb-1" />
+                  <span className="text-xs text-center">{item.label}</span>
+                </Button>
+              </Link>
+            ))}
+          </div>
+          <Button 
+            onClick={handleLogout}
+            className="flex items-center"
+            variant="secondary"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      </div>
+    </nav>
+  )
+}
 
 export default function Homepage() {
   const router = useRouter()
@@ -50,110 +88,86 @@ export default function Homepage() {
     : receipts
 
   return (
-    <div className="container mx-auto px-4 py-8 relative min-h-screen">
-      <div className="flex flex-col items-center mb-6">
-        <Image src="/wex.png" alt="Wex Logo" width={100} height={100} className="mb-4" />
-        <h1 className="text-3xl font-bold text-center">Welcome to WMS Xpress</h1>
-      </div>
-
-      <div className="mb-8">
-        <div className="flex flex-wrap justify-center gap-4 mb-6">
-          <Link href="/client/HomePage/WR">
-            <Button variant="outline">Warehouse Receipt</Button>
-          </Link>
-          <Link href="/client/HomePage/PO">
-            <Button variant="outline">Purchase Order</Button>
-          </Link>
-          <Link href="/client/HomePage/MR">
-            <Button variant="outline">Material Receipt</Button>
-          </Link>
+    <div className="min-h-screen bg-background">
+      <Navigation handleLogout={handleLogout} />
+      <div className="container mx-auto px-4 py-8 relative">
+        <div className="mb-8">
+          <div className="mb-4 flex justify-center">
+            <input
+              type="text"
+              placeholder="Search by number (e.g., WR-012, PO987654)..."
+              className="border rounded-md p-2 w-full max-w-3xl" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-        
-        <div className="mb-4 flex justify-center">
-          <input
-            type="text"
-            placeholder="Search by number (e.g., WR-012, PO987654)..."
-            className="border rounded-md p-2 w-full max-w-3xl" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8 max-w-3xl mx-auto"> 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-bold">Warehouse Receipt</TableHead>
-              <TableHead className="font-bold">PO Number</TableHead>
-              <TableHead className="font-bold">MR</TableHead>
-              <TableHead className="font-bold w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+        <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8 max-w-3xl mx-auto"> 
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-4">
-                  Loading...
-                </TableCell>
+                <TableHead className="font-bold">Warehouse Receipt</TableHead>
+                <TableHead className="font-bold">PO Number</TableHead>
+                <TableHead className="font-bold">MR</TableHead>
+                <TableHead className="font-bold w-[100px]">Actions</TableHead>
               </TableRow>
-            ) : error ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-4 text-red-500">
-                  {error}
-                </TableCell>
-              </TableRow>
-            ) : filteredReceipts.length > 0 ? (
-              filteredReceipts.map((receipt, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <Link href={`/warehouse-receipt/${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
-                      {receipt[0]}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/purchase-order/${receipt[1]}`} className="text-primary hover:text-blue-600 hover:underline">
-                      {receipt[1]}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    {receipt[2] ? (
-                      <Link href={`/material-receipt/${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
-                        View MR
-                      </Link>
-                    ) : (
-                      "No MR"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/edit-warehouse/${receipt[0]}`}>
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                    </Link>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-4">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-4">
-                  {searchTerm ? "No results found" : "No receipts available"}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="absolute bottom-4 right-4">
-        <Button 
-          onClick={handleLogout}
-          className="flex items-center"
-          variant="outline"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-4 text-red-500">
+                    {error}
+                  </TableCell>
+                </TableRow>
+              ) : filteredReceipts.length > 0 ? (
+                filteredReceipts.map((receipt, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Link href={`/client/HomePage/WR?wrNumber=${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
+                        {receipt[0]}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/client/HomePage/PO?poNumber=${receipt[1]}`} className="text-primary hover:text-blue-600 hover:underline">
+                        {receipt[1]}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {receipt[2] ? (
+                        <Link href={`/client/HomePage/MR?mrNumber=${receipt[0]}`} className="text-primary hover:text-blue-600 hover:underline">
+                          View MR
+                        </Link>
+                      ) : (
+                        "No MR"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/edit-warehouse/${receipt[0]}`}>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-4">
+                    {searchTerm ? "No results found" : "No receipts available"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   )
