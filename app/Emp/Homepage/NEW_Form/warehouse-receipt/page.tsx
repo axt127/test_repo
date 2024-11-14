@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
-import { LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
+import { Input } from "@/components/ui/input"
+import { LogOut, Home, FileText, ShoppingCart, Package, Search, ArrowLeft } from 'lucide-react'
 
 interface Notification {
   type: 'success' | 'error';
@@ -102,6 +103,7 @@ export default function WarehouseReceipt() {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [tableData, setTableData] = useState<TableRow[]>(initialTableData)
   const [lastSubmittedWR, setLastSubmittedWR] = useState<string>('')
+  const [searchWRNumber, setSearchWRNumber] = useState<string>('')
 
   useEffect(() => {
     const controller = new AbortController();
@@ -248,6 +250,46 @@ export default function WarehouseReceipt() {
     }
   }
 
+  const handleSearch = async () => {
+    setNotification(null)
+    try {
+      const response = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-wr-ids?wr_id=${searchWRNumber}`)
+      if (response.data && response.data.length > 0) {
+        const wrData = response.data[0]
+        setFormData({
+          wrNumber: wrData.wr_id,
+          client: wrData.client,
+          carrier: wrData.carrier,
+          trackingNumber: wrData.tracking_number,
+          receivedBy: wrData.received_by,
+          hazmat: wrData.hazmat,
+          hazmatCode: wrData.hazmat_code,
+          notes: wrData.notes,
+          po: wrData.po,
+        })
+        setTableData(wrData.box_details.map((box: any) => ({
+          number: box.number,
+          type: box.type,
+          length: box.length,
+          width: box.width,
+          height: box.height,
+          weight: box.weight,
+          location: box.location,
+        })))
+        setNotification({ type: 'success', message: 'Warehouse receipt data loaded successfully!' })
+      } else {
+        setNotification({ type: 'error', message: 'No warehouse receipt found with the given number.' })
+      }
+    } catch (error) {
+      console.error('Error searching for warehouse receipt:', error)
+      setNotification({ type: 'error', message: 'Failed to search for warehouse receipt. Please try again.' })
+    }
+  }
+
+  const handleBack = () => {
+    router.push('/Emp/Homepage')
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -263,6 +305,23 @@ export default function WarehouseReceipt() {
           {lastSubmittedWR && (
             <p className="text-sm text-muted-foreground">Last submitted WR: {lastSubmittedWR}</p>
           )}
+        </div>
+        <div className="flex items-center space-x-2 mb-4">
+          <Input
+            type="text"
+            placeholder="Search WR Number"
+            value={searchWRNumber}
+            onChange={(e) => setSearchWRNumber(e.target.value)}
+            className="w-64"
+          />
+          <Button onClick={handleSearch}>
+            <Search className="w-4 h-4 mr-2" />
+            Search
+          </Button>
+          <Button onClick={handleBack} variant="outline" className="ml-auto">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
