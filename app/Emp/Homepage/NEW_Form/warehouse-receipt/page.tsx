@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
+import { LogOut, Home, FileText, ShoppingCart, Package, Edit } from 'lucide-react'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -70,6 +70,9 @@ function Navigation() {
               { href: "/Emp/Homepage/NEW_Form/warehouse-receipt", label: "Warehouse Receipt", icon: FileText },
               { href: "/Emp/Homepage/NEW_Form/purchase-order", label: "Purchase Order", icon: ShoppingCart },
               { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
+              { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
+              { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
+              { href: "/Emp/Homepage/EDIT_FORM/edit-material", label: "Edit Material", icon: Edit },
             ].map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
