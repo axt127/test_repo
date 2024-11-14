@@ -36,6 +36,7 @@ interface WarehouseReceipt {
     location: string;
     weight: number;
   }[];
+  images: string[];
 }
 
 function Navigation() {
@@ -84,7 +85,7 @@ function Navigation() {
   )
 }
 
-export default function WarehouseReceiptSearch() {
+export default function EditWarehouseReceipt() {
   const [notification, setNotification] = useState<Notification | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResult, setSearchResult] = useState<WarehouseReceipt | null>(null)
@@ -153,8 +154,20 @@ export default function WarehouseReceiptSearch() {
             height: item[4],
             location: item[5],
             weight: item[6]
-          }))
+          })),
+          images: []
         }
+
+        // Fetch images
+        try {
+          const imagesResponse = await axios.get(`https://zol0yn9wc2.execute-api.us-east-1.amazonaws.com/prod/getPhoto?wr_id=${searchQuery}`)
+          if (imagesResponse.data && Array.isArray(imagesResponse.data)) {
+            parsedResult.images = imagesResponse.data
+          }
+        } catch (imageError) {
+          console.error('Error fetching images:', imageError)
+        }
+
         setSearchResult(parsedResult)
         setEditedReceipt(parsedResult)
       } else {
@@ -286,7 +299,7 @@ export default function WarehouseReceiptSearch() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Warehouse Receipt Search</h1>
+          <h1 className="text-3xl font-bold">Edit Warehouse Receipt</h1>
           <Button
             onClick={() => router.back()}
             variant="outline"
@@ -453,6 +466,24 @@ export default function WarehouseReceiptSearch() {
                 </table>
               </div>
             </div>
+            {searchResult.images && searchResult.images.length > 0 && (
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Images</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {searchResult.images.map((imageUrl, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <Image
+                        src={imageUrl}
+                        alt={`Warehouse Receipt Image ${index + 1}`}
+                        layout="fill"
+                        objectFit="cover"
+                        className="rounded-md"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
