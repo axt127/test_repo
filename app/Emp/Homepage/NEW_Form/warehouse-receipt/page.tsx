@@ -6,10 +6,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
-import { toast, ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+
+interface Notification {
+  type: 'success' | 'error';
+  message: string;
+}
 
 interface TableRow {
   number: string;
@@ -98,7 +100,7 @@ export default function Component() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [tableData, setTableData] = useState<TableRow[]>(initialTableData)
-  const [clients, setClients] = useState<string[]>([])
+  const [lastSubmittedWR, setLastSubmittedWR] = useState<string>('')
 
   useEffect(() => {
     const controller = new AbortController();
@@ -246,10 +248,6 @@ export default function Component() {
     }
   }
 
-  const handleClientChange = (value: string) => {
-    setFormData(prev => ({ ...prev, client: value }))
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -257,6 +255,23 @@ export default function Component() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Warehouse Receipt Form</h1>
+        </div>
+        <div className="flex items-center space-x-2 mb-4">
+          <Input
+            type="text"
+            placeholder="Search WR Number"
+            value={searchWRNumber}
+            onChange={(e) => setSearchWRNumber(e.target.value)}
+            className="w-64"
+          />
+          <Button onClick={handleSearch}>
+            <Search className="w-4 h-4 mr-2" />
+            Search
+          </Button>
+          <Button onClick={handleBack} variant="outline" className="ml-auto">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
