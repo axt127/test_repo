@@ -5,10 +5,19 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
-import { Trash2, LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
+import { Trash2, LogOut, Home, FileText, ShoppingCart, Package, Edit } from 'lucide-react'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { Edit } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { UserOptions } from 'jspdf-autotable'
+import QRCode from 'qrcode'
+
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: UserOptions) => jsPDF;
+  }
+}
 
 function Navigation() {
   const router = useRouter()
@@ -33,7 +42,6 @@ function Navigation() {
               { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
               { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
               { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
-              { href: "/Emp/Homepage/EDIT_FORM/edit-material", label: "Edit Material", icon: Edit },
             ].map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
@@ -223,8 +231,131 @@ export default function MaterialReceipt() {
     }
   }
 
+  const generatePDF = async () => {
+    console.log('Generating PDF...');
+    try {
+      const doc = new jsPDF()
+    
+      // Set document properties
+      doc.setProperties({
+        title: `Material Receipt - ${formData.warehouseNumber}`,
+        subject: 'Material Receipt',
+        author: 'WMS Express',
+        keywords: 'material, receipt, logistics',
+        creator: 'WMS Express System'
+      })
+
+      // Generate QR code with error handling
+      try {
+        const qrCodeDataUrl = await QRCode.toDataURL(formData.warehouseNumber)
+        // Add QR code
+        doc.addImage(qrCodeDataUrl, 'PNG', 170, 10, 30, 30)
+      } catch (error) {
+        console.error('Failed to generate QR code:', error)
+        // Fallback: Add text instead of QR code
+        doc.setFontSize(10)
+        doc.text(`WR: ${formData.warehouseNumber}`, 170, 20)
+      }
+
+      // Add title
+      doc.setFontSize(24)
+      doc.setTextColor(44, 62, 80) // Dark blue color
+      doc.text('Material Receipt', 50, 30)
+
+      // Add horizontal line
+      doc.setDrawColor(52, 152, 219) // Blue color
+      doc.setLineWidth(0.5)
+      doc.line(14, 45, 196, 45)
+
+      // Add form data
+      doc.setFontSize(12)
+      doc.setTextColor(0, 0, 0) // Black color
+
+      const leftColumnX = 14
+      const rightColumnX = 110
+      let yPosition = 55
+
+      // Helper function to add a field
+      const addField = (label: string, value: string, x: number) => {
+        doc.setFont("helvetica", "bold")
+        doc.text(label, x, yPosition)
+        doc.setFont("helvetica", "normal")
+        doc.text(value, x, yPosition + 7)
+        yPosition += 15
+      }
+
+      // Left column
+      addField("Warehouse Number:", formData.warehouseNumber, leftColumnX)
+      addField("Client:", formData.client, leftColumnX)
+      addField("PO#:", formData.po, leftColumnX)
+
+      // Reset Y position for right column
+      yPosition = 55
+
+      // Right column
+      addField("Receipt Date:", formData.receiptDate, rightColumnX)
+      addField("Carrier:", formData.carrier, rightColumnX)
+      addField("Tracking Number:", formData.tracking, rightColumnX)
+
+      // Add box details table
+      yPosition += 20
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Number', 'Type', 'Length', 'Width', 'Height', 'Weight', 'Location']],
+        body: tableData.map(row => Object.values(row)),
+        headStyles: { fillColor: [52, 152, 219], textColor: 255 },
+        alternateRowStyles: { fillColor: [241, 245, 249] },
+        styles: { 
+          font: "helvetica", 
+          fontSize: 10,
+          cellPadding: 3,
+        },
+      })
+
+      // Add item details table
+      const lastAutoTable = (doc as any).lastAutoTable;
+      yPosition = lastAutoTable ? lastAutoTable.finalY + 20 : yPosition + 20;
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Item #', 'Part ID', 'Description', 'Quantity Order', 'Quantity Received', 'Total Quantity', 'Box ID']],
+        body: additionalTableData.map(row => Object.values(row)),
+        headStyles: { fillColor: [52, 152, 219], textColor: 255 },
+        alternateRowStyles: { fillColor: [241, 245, 249] },
+        styles: { 
+          font: "helvetica", 
+          fontSize: 10,
+          cellPadding: 3,
+        },
+      })
+
+      // Add footer
+      const pageCount = doc.getNumberOfPages()
+      doc.setFont("helvetica", "italic")
+      doc.setFontSize(10)
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.text(
+          `Page ${i} of ${pageCount}`,
+          doc.internal.pageSize.width / 2,
+          doc.internal.pageSize.height - 10,
+          { align: "center" }
+        )
+      }
+    
+      // Save the PDF
+      doc.save(`material_receipt_${formData.warehouseNumber}.pdf`)
+      console.log('PDF generated and saved successfully');
+      toast.success('PDF generated and downloaded successfully.')
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      toast.error('Failed to generate PDF. Please try again or contact support.')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
+    console.log('Form submission started');
     
     // Format the data as required by the API
     const formattedData = [
@@ -238,6 +369,7 @@ export default function MaterialReceipt() {
     ]
 
     try {
+      console.log('Sending data to API...');
       const response = await fetch('https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/putMR', {
         method: 'POST',
         headers: {
@@ -247,32 +379,21 @@ export default function MaterialReceipt() {
       })
 
       if (response.ok) {
-        toast.success('Material Receipt submitted successfully!', {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        })
-        // Optionally, reset form or redirect
-        // setFormData({ warehouseNumber: '', client: '', receiptDate: '', po: '', carrier: '', tracking: '' })
-        // setTableData([{ number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])
-        // setAdditionalTableData([{ itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }])
-        // router.push('/homepage')
+        console.log('API response successful');
+        toast.success('Material Receipt submitted successfully!')
+        console.log('Initiating PDF generation...');
+        await generatePDF() // Generate and download PDF immediately after successful submission
+        console.log('PDF generation completed');
       } else {
+        console.log('API response not OK:', response.status);
         throw new Error('Failed to submit Material Receipt')
       }
     } catch (error) {
-      toast.error('Failed to submit Material Receipt. Please try again.', {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      })
       console.error('Error:', error)
+      toast.error('Failed to submit Material Receipt. Please try again.')
+    } finally {
+      setIsLoading(false)
+      console.log('Form submission process completed');
     }
   }
 
@@ -476,8 +597,8 @@ export default function MaterialReceipt() {
               </div>
               
               <div className="flex items-center justify-end">
-                <Button type="submit">
-                  Submit
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Submitting...' : 'Submit'}
                 </Button>
               </div>
             </>

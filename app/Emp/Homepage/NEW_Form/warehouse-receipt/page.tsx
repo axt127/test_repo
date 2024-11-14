@@ -10,6 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LogOut, Home, FileText, ShoppingCart, Package, Edit } from 'lucide-react'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { UserOptions } from 'jspdf-autotable'
+import QRCode from 'qrcode'
+
+
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: UserOptions) => jsPDF;
+  }
+}
 
 interface TableRow {
   number: string;
@@ -72,7 +83,6 @@ function Navigation() {
               { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
               { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
               { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
-              { href: "/Emp/Homepage/EDIT_FORM/edit-material", label: "Edit Material", icon: Edit },
             ].map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
@@ -184,6 +194,133 @@ export default function Component() {
     }
   }
 
+  const generatePDF = async () => {
+    const doc = new jsPDF()
+    
+    // Set document properties
+    doc.setProperties({
+      title: `Warehouse Receipt - ${formData.wrNumber}`,
+      subject: 'Warehouse Receipt',
+      author: 'WMS Express',
+      keywords: 'warehouse, receipt, logistics',
+      creator: 'WMS Express System'
+    })
+
+    // Generate QR code
+    let qrCodeDataUrl;
+    try {
+      qrCodeDataUrl = await QRCode.toDataURL(formData.wrNumber)
+    } catch (error) {
+      console.error('Error generating QR code:', error)
+    }
+
+    // Add logo (with error handling)
+    try {
+      doc.addImage('/wex.png', 'PNG', 14, 10, 30, 30)
+    } catch (error) {
+      console.error('Error adding logo:', error)
+      // Fallback: Add text instead of image
+      doc.setFontSize(12)
+      doc.text('WMS Express', 14, 20)
+    }
+
+    // Add QR code (with error handling)
+    if (qrCodeDataUrl) {
+      try {
+        doc.addImage(qrCodeDataUrl, 'PNG', 170, 10, 30, 30)
+      } catch (error) {
+        console.error('Error adding QR code:', error)
+        // Fallback: Add text instead of QR code
+        doc.setFontSize(8)
+        doc.text(`WR: ${formData.wrNumber}`, 170, 20)
+      }
+    }
+
+    // Add title
+    doc.setFontSize(24)
+    doc.setTextColor(44, 62, 80) // Dark blue color
+    doc.text('Warehouse Receipt', 50, 30)
+
+    // Add horizontal line
+    doc.setDrawColor(52, 152, 219) // Blue color
+    doc.setLineWidth(0.5)
+    doc.line(14, 45, 196, 45)
+
+    // Add form data
+    doc.setFontSize(12)
+    doc.setTextColor(0, 0, 0) // Black color
+
+    const leftColumnX = 14
+    const rightColumnX = 110
+    let yPosition = 55
+
+    // Helper function to add a field
+    const addField = (label: string, value: string, x: number) => {
+      doc.setFont("helvetica", "bold")
+      doc.text(label, x, yPosition)
+      doc.setFont("helvetica", "normal")
+      doc.text(value, x, yPosition + 7)
+      yPosition += 15
+    }
+
+    // Left column
+    addField("WR Number:", formData.wrNumber, leftColumnX)
+    addField("Client:", formData.client, leftColumnX)
+    addField("PO#:", formData.po, leftColumnX)
+    addField("Carrier:", formData.carrier, leftColumnX)
+
+    // Reset Y position for right column
+    yPosition = 55
+
+    // Right column
+    addField("Tracking Number:", formData.trackingNumber, rightColumnX)
+    addField("Received By:", formData.receivedBy, rightColumnX)
+    addField("Hazmat:", formData.hazmat, rightColumnX)
+    if (formData.hazmat === 'yes') {
+      addField("Hazmat Code:", formData.hazmatCode, rightColumnX)
+    }
+
+    // Notes section
+    yPosition += 10
+    doc.setFont("helvetica", "bold")
+    doc.text("Notes:", leftColumnX, yPosition)
+    doc.setFont("helvetica", "normal")
+    const splitNotes = doc.splitTextToSize(formData.notes, 180)
+    doc.text(splitNotes, leftColumnX, yPosition + 7)
+
+    // Add box details table
+    yPosition += 20 + (splitNotes.length * 7)
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Number', 'Type', 'Length', 'Width', 'Height', 'Weight', 'Location']],
+      body: tableData.map(row => Object.values(row)),
+      headStyles: { fillColor: [52, 152, 219], textColor: 255 },
+      alternateRowStyles: { fillColor: [241, 245, 249] },
+      styles: { 
+        font: "helvetica", 
+        fontSize: 10,
+        cellPadding: 3,
+      },
+    })
+
+    // Add footer
+    const pageCount = doc.getNumberOfPages()
+    doc.setFont("helvetica", "italic")
+    doc.setFontSize(10)
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        doc.internal.pageSize.width / 2,
+        doc.internal.pageSize.height - 10,
+        { align: "center" }
+      )
+    }
+    
+    // Save the PDF
+    doc.save(`warehouse_receipt_${formData.wrNumber}.pdf`)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -226,6 +363,7 @@ export default function Component() {
 
       if (response.status === 200) {
         toast.success('Warehouse receipt submitted successfully!')
+        generatePDF() // Generate and download PDF after successful submission
         resetForm()
         fetchNewWRNumber()
       } else {
