@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Save, Plus, Trash2, LogOut, Home, FileText, ShoppingCart, Package } from 'lucide-react'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableRow, TableHeader } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ScrollArea } from "@/components/ui/scroll-area"
+// import { ScrollArea } from "@/components/ui/scroll-area"
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -82,12 +85,39 @@ export default function PurchaseOrder() {
     { itemNumber: '1', partNumber: '', description: '', quantity: 0, costPerUnit: 0 }
   ])
 
+  const [clients, setClients] = useState<string[]>([])
+  const [destinations, setDestinations] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const lastRowRef = useRef<HTMLTableRowElement>(null)
+  useEffect(() => {
+    fetchClients()
+  }, [])
 
-  const handlePOInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setPOInfo({ ...poInfo, [e.target.name]: e.target.value })
+  const fetchClients = async () => {
+    try {
+      const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-clients')
+      setClients(response.data)
+    } catch (error) {
+      console.error('Error fetching clients:', error)
+      toast.error('Failed to fetch clients. Please try again.')
+    }
+  }
+
+  const fetchDestinations = async (client: string) => {
+    try {
+      const response = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getalldestinationsforclient?client=${client}`)
+      setDestinations(response.data)
+    } catch (error) {
+      console.error('Error fetching destinations:', error)
+      toast.error('Failed to fetch destinations. Please try again.')
+    }
+  }
+
+  const handlePOInfoChange = (name: string, value: string) => {
+    setPOInfo({ ...poInfo, [name]: value })
+    if (name === 'client') {
+      fetchDestinations(value)
+    }
   }
 
   const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -109,13 +139,6 @@ export default function PurchaseOrder() {
     }));
     setItems(newItems);
     toast.warn('Item removed from the purchase order.')
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (e.key === 'Tab' && !e.shiftKey && index === items.length - 1 && e.currentTarget.name === 'costPerUnit') {
-      e.preventDefault()
-      addItem()
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,13 +189,6 @@ export default function PurchaseOrder() {
     }
   }
 
-  useEffect(() => {
-    if (lastRowRef.current) {
-      const inputs = lastRowRef.current.querySelectorAll('input')
-      inputs[0]?.focus()
-    }
-  }, [items.length])
-
   const totalCost = items.reduce((sum, item) => sum + item.quantity * item.costPerUnit, 0)
 
   return (
@@ -188,32 +204,54 @@ export default function PurchaseOrder() {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="poNumber">PO Number</Label>
-                <Input id="poNumber" name="poNumber" value={poInfo.poNumber} onChange={handlePOInfoChange} required />
+                <Input id="poNumber" name="poNumber" value={poInfo.poNumber} onChange={(e) => handlePOInfoChange('poNumber', e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="client">Client</Label>
-                <Input id="client" name="client" value={poInfo.client} onChange={handlePOInfoChange} required />
+                <Select onValueChange={(value) => handlePOInfoChange('client', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <ScrollArea className="h-[400px]">
+                      {clients.map((client) => (
+                        <SelectItem key={client} value={client}>{client}</SelectItem>
+                      ))}
+                    </ScrollArea>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="destination">Destination</Label>
-                <Input id="destination" name="destination" value={poInfo.destination} onChange={handlePOInfoChange} required />
+                <Select onValueChange={(value) => handlePOInfoChange('destination', value)} disabled={!poInfo.client}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a destination" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <ScrollArea className="h-[400px]">
+                      {destinations.map((destination) => (
+                        <SelectItem key={destination} value={destination}>{destination}</SelectItem>
+                      ))}
+                    </ScrollArea>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vendor">Vendor</Label>
-                <Input id="vendor" name="vendor" value={poInfo.vendor} onChange={handlePOInfoChange} required />
+                <Input id="vendor" name="vendor" value={poInfo.vendor} onChange={(e) => handlePOInfoChange('vendor', e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="shipVia">Ship Via</Label>
-                <Input id="shipVia" name="shipVia" value={poInfo.shipVia} onChange={handlePOInfoChange} />
+                <Input id="shipVia" name="shipVia" value={poInfo.shipVia} onChange={(e) => handlePOInfoChange('shipVia', e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
-                <Input id="date" name="date" type="date" value={poInfo.date} onChange={handlePOInfoChange} required />
+                <Input id="date" name="date" type="date" value={poInfo.date} onChange={(e) => handlePOInfoChange('date', e.target.value)} required />
               </div>
             </div>
             <div className="mt-4 space-y-2">
               <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" name="notes" value={poInfo.notes} onChange={handlePOInfoChange} />
+              <Textarea id="notes" name="notes" value={poInfo.notes} onChange={(e) => handlePOInfoChange('notes', e.target.value)} />
             </div>
           </CardContent>
         </Card>
@@ -237,7 +275,7 @@ export default function PurchaseOrder() {
               </TableHeader>
               <TableBody>
                 {items.map((item, index) => (
-                  <TableRow key={index} ref={index === items.length - 1 ? lastRowRef : null}>
+                  <TableRow key={index}>
                     <TableCell>
                       <Input
                         className="w-full"
@@ -278,7 +316,6 @@ export default function PurchaseOrder() {
                         type="number"
                         value={item.costPerUnit}
                         onChange={(e) => handleItemChange(index, e)}
-                        onKeyDown={(e) => handleKeyDown(e, index)}
                       />
                     </TableCell>
                     <TableCell className="text-sm">${(item.quantity * item.costPerUnit).toFixed(2)}</TableCell>
