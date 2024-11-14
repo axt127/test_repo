@@ -196,7 +196,6 @@ export default function WarehouseReceiptSearch() {
           editedReceipt.notes,
           editedReceipt.po
         ],
-        [editedReceipt.itemCount.toString(), "Item Count", 0, 0, 0, "", 0],
         ...editedReceipt.items.map(item => [
           item.number,
           item.type,
@@ -210,9 +209,9 @@ export default function WarehouseReceiptSearch() {
   
       console.log('Sending data:', JSON.stringify(formattedData, null, 2));
   
-      const response = await axios.post(
+      const response = await axios.put(
         'https://i86t4jbtki.execute-api.us-east-1.amazonaws.com/prod/updateWR',
-        { wr_id: editedReceipt.wrNumber, data: formattedData },
+        formattedData,
         {
           headers: {
             'Content-Type': 'application/json'
