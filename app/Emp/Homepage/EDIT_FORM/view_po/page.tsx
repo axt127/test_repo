@@ -32,7 +32,7 @@ interface POItem {
   client: string;
   poNumber: string;
   line: number;
-  partId: string;
+  partID: string;
   description: string;
   quantity: number;
   costPerUnit: number;
@@ -40,12 +40,13 @@ interface POItem {
 }
 
 interface MaterialReceipt {
-  item: string;
-  partNumber: string;
+  line: string;
+  partID: string;
   description: string;
-  qtyReceived: number;
+  qtyReceived: string;
   dateReceived: string;
   mrNumber: string;
+  boxid: string;
 }
 
 interface Shipment {
@@ -143,30 +144,75 @@ export default function PurchaseOrderStatus() {
     setSearchResult(null)
 
     try {
-      const response = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${searchQuery}`)
-      if (response.status === 200 && response.data) {
-        const [generalInfo, itemCount, ...items] = response.data
-        const parsedResult: PurchaseOrder = {
-          poNumber: generalInfo[0],
-          destination: generalInfo[1],
-          vendor: generalInfo[2],
-          shipVia: generalInfo[3],
-          notes: generalInfo[4],
-          client: generalInfo[5],
-          items: items.map((item: any[]) => ({
+      const poResponse = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${searchQuery}`)
+      if (poResponse.status === 200 && poResponse.data) {
+        const [generalInfo, itemCount, ...items] = poResponse.data
+        
+        try {
+          // Fetch receipts data using the PO number
+          const receiptsResponse = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/ViewPo?wr_po=${searchQuery}`)
+          const receiptsData = JSON.parse(receiptsResponse.data.body)
+
+          const parsedItems = items.map((item: any[]) => ({
             client: item[0],
             poNumber: item[1],
             line: item[2],
-            partId: item[3],
+            partID: item[3],
             description: item[4],
             quantity: item[5],
             costPerUnit: item[6],
             quantityReceived: item[7]
-          })),
-          receipts: [], // Placeholder for now
-          shipments: [] // Placeholder for now
+          }))
+
+          const parsedReceipts = receiptsData.map((receipt: any) => {
+            const matchingItem = parsedItems.find((item: POItem) => item.line === parseInt(receipt.line, 10))
+            return {
+              ...receipt,
+              partID: matchingItem ? matchingItem.partID : receipt.partID,
+              description: matchingItem ? matchingItem.description : receipt.description
+            }
+          })
+
+          console.log('Parsed Items:', parsedItems);
+          console.log('Parsed Receipts:', parsedReceipts);
+
+          const parsedResult: PurchaseOrder = {
+            poNumber: generalInfo[0],
+            destination: generalInfo[1],
+            vendor: generalInfo[2],
+            shipVia: generalInfo[3],
+            notes: generalInfo[4],
+            client: generalInfo[5],
+            items: parsedItems,
+            receipts: parsedReceipts,
+            shipments: [] // Placeholder for now
+          }
+          setSearchResult(parsedResult)
+        } catch (receiptsError) {
+          console.error('Error fetching receipts:', receiptsError)
+          setNotification({ type: 'error', message: 'Failed to fetch receipt data. Please try again later.' })
+          // Still set the search result, but without receipts
+          setSearchResult({
+            poNumber: generalInfo[0],
+            destination: generalInfo[1],
+            vendor: generalInfo[2],
+            shipVia: generalInfo[3],
+            notes: generalInfo[4],
+            client: generalInfo[5],
+            items: items.map((item: any[]) => ({
+              client: item[0],
+              poNumber: item[1],
+              line: item[2],
+              partID: item[3],
+              description: item[4],
+              quantity: item[5],
+              costPerUnit: item[6],
+              quantityReceived: item[7]
+            })),
+            receipts: [],
+            shipments: []
+          })
         }
-        setSearchResult(parsedResult)
       } else {
         setNotification({ type: 'error', message: 'No purchase order found with the given number.' })
       }
@@ -229,7 +275,7 @@ export default function PurchaseOrderStatus() {
                   {searchResult.items.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell>{item.line}</TableCell>
-                      <TableCell>{item.partId}</TableCell>
+                      <TableCell>{item.partID}</TableCell>
                       <TableCell>{item.description}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell>${item.costPerUnit.toFixed(2)}</TableCell>
@@ -251,23 +297,25 @@ export default function PurchaseOrderStatus() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Part #</TableHead>
+                    <TableHead>Line</TableHead>
+                    <TableHead>Part ID</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Qty Received</TableHead>
                     <TableHead>Date Received</TableHead>
                     <TableHead>MR #</TableHead>
+                    <TableHead>Box ID</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {searchResult.receipts.map((receipt, index) => (
                     <TableRow key={index}>
-                      <TableCell>{receipt.item}</TableCell>
-                      <TableCell>{receipt.partNumber}</TableCell>
-                      <TableCell>{receipt.description}</TableCell>
+                      <TableCell>{receipt.line}</TableCell>
+                      <TableCell>{receipt.partID || 'N/A'}</TableCell>
+                      <TableCell>{receipt.description || 'N/A'}</TableCell>
                       <TableCell>{receipt.qtyReceived}</TableCell>
-                      <TableCell>{receipt.dateReceived}</TableCell>
+                      <TableCell>{new Date(receipt.dateReceived).toLocaleDateString()}</TableCell>
                       <TableCell>{receipt.mrNumber}</TableCell>
+                      <TableCell>{receipt.boxid}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
