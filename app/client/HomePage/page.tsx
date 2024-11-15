@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   LogOut,
   Home,
@@ -89,6 +89,8 @@ function Navigation({
 
 export default function Homepage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const clientName = searchParams.get('clientName') || '';
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -100,7 +102,7 @@ export default function Homepage() {
       setError(null);
       try {
         const response = await axios.get<ReceiptData[]>(
-          'https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=David Burris'
+          `https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=${encodeURIComponent(clientName)}`
         );
         console.log('API Response:', response.data);
         setReceipts(response.data);
@@ -112,8 +114,10 @@ export default function Homepage() {
       }
     };
 
-    fetchRecentReceipts();
-  }, []);
+    if (clientName) {
+      fetchRecentReceipts();
+    }
+  }, [clientName]);
 
   const handleLogout = () => {
     router.push('/login');
@@ -212,11 +216,3 @@ export default function Homepage() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
