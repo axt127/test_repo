@@ -51,7 +51,6 @@ export default function EmployeeHomepage() {
                 { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
                 { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
                 { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
-                { href: "/Emp/Homepage/EDIT_FORM/edit-material", label: "Edit Material", icon: Edit },
                 { href: "/Emp/Homepage/EDIT_FORM/view_po", label: "View PO", icon: Edit },
 
               ].map((item) => (
