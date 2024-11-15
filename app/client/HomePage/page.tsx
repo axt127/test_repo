@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
-  Edit,
   LogOut,
   Home,
   FileText,
@@ -95,17 +94,6 @@ export default function Homepage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State variables for modal and images
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalImages, setModalImages] = useState<string[]>([]);
-  const [modalLoading, setModalLoading] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [selectedWRNumber, setSelectedWRNumber] = useState<string | null>(null);
-
-  // State variables for full-screen image
-  const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
-  const [fullScreenImageIndex, setFullScreenImageIndex] = useState<number>(0);
-
   useEffect(() => {
     const fetchRecentReceipts = async () => {
       setIsLoading(true);
@@ -129,56 +117,6 @@ export default function Homepage() {
 
   const handleLogout = () => {
     router.push('/login');
-  };
-
-  const openModalWithImages = async (wrNumber: string) => {
-    setIsModalOpen(true);
-    setSelectedWRNumber(wrNumber);
-    setModalLoading(true);
-    setModalError(null);
-    try {
-      const response = await axios.get(
-        `https://zol0yn9wc2.execute-api.us-east-1.amazonaws.com/prod/getPhoto?wr_id=${wrNumber}`
-      );
-      const imageUrls = response.data;
-      setModalImages(imageUrls);
-    } catch (error) {
-      console.error('Error fetching images:', error);
-      setModalError('Failed to fetch images.');
-      setModalImages([]);
-    } finally {
-      setModalLoading(false);
-    }
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setModalImages([]);
-    setModalError(null);
-    setSelectedWRNumber(null);
-  };
-
-  const openFullScreenImage = (index: number) => {
-    setFullScreenImageIndex(index);
-    setIsFullScreenOpen(true);
-    setIsModalOpen(false); // Close the first modal
-  };
-
-  const closeFullScreenImage = () => {
-    setIsFullScreenOpen(false);
-    setIsModalOpen(true); // Re-open the first modal if desired
-  };
-
-  const showPrevImage = () => {
-    setFullScreenImageIndex((prevIndex) =>
-      prevIndex === 0 ? modalImages.length - 1 : prevIndex - 1
-    );
-  };
-
-  const showNextImage = () => {
-    setFullScreenImageIndex((prevIndex) =>
-      prevIndex === modalImages.length - 1 ? 0 : prevIndex + 1
-    );
   };
 
   const filteredReceipts = searchTerm
@@ -212,19 +150,18 @@ export default function Homepage() {
                 <TableHead className="font-bold">Warehouse Receipt</TableHead>
                 <TableHead className="font-bold">PO Number</TableHead>
                 <TableHead className="font-bold">MR</TableHead>
-                <TableHead className="font-bold w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4">
+                  <TableCell colSpan={3} className="text-center py-4">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4 text-red-500">
+                  <TableCell colSpan={3} className="text-center py-4 text-red-500">
                     {error}
                   </TableCell>
                 </TableRow>
@@ -259,21 +196,11 @@ export default function Homepage() {
                         'No MR'
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openModalWithImages(receipt[0])}
-                      >
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">View Images</span>
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4">
+                  <TableCell colSpan={3} className="text-center py-4">
                     {searchTerm ? 'No results found' : 'No receipts available'}
                   </TableCell>
                 </TableRow>
@@ -281,85 +208,6 @@ export default function Homepage() {
             </TableBody>
           </Table>
         </div>
-
-        {/* Modal for displaying images */}
-        {isModalOpen && !isFullScreenOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg p-4 max-w-3xl w-full relative">
-              <button
-                onClick={closeModal}
-                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                &times;
-              </button>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Images for {selectedWRNumber}</h2>
-              </div>
-              {modalLoading ? (
-                <p>Loading images...</p>
-              ) : modalError ? (
-                <p className="text-red-500">{modalError}</p>
-              ) : modalImages.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {modalImages.map((url, index) => (
-                    <div
-                      key={index}
-                      className="border rounded overflow-hidden cursor-pointer"
-                      onClick={() => openFullScreenImage(index)}
-                    >
-                      <Image
-                        src={url}
-                        alt={`Image ${index + 1}`}
-                        width={300}
-                        height={200}
-                        className="object-cover w-full h-auto"
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No images available for this warehouse receipt.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Full-screen image modal */}
-        {isFullScreenOpen && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-80">
-            <button
-              onClick={closeFullScreenImage}
-              className="absolute top-4 right-4 text-white text-3xl font-bold"
-            >
-              &times;
-            </button>
-            {modalImages.length > 1 && (
-              <>
-                <button
-                  onClick={showPrevImage}
-                  className="absolute left-4 text-white text-5xl font-bold"
-                >
-                  &#8249;
-                </button>
-                <button
-                  onClick={showNextImage}
-                  className="absolute right-4 text-white text-5xl font-bold"
-                >
-                  &#8250;
-                </button>
-              </>
-            )}
-            <div className="relative max-w-full max-h-full flex items-center justify-center">
-              <Image
-                src={modalImages[fullScreenImageIndex]}
-                alt={`Image ${fullScreenImageIndex + 1}`}
-                width={800}
-                height={800}
-                className="object-contain w-auto h-auto max-w-full max-h-full"
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
