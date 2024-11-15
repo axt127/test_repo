@@ -95,7 +95,8 @@ export default function MaterialReceipt() {
     receiptDate: '',
     po: '',
     carrier: '',
-    tracking: ''
+    tracking: '',
+    enteredBy: ''
   })
 
   const [tableData, setTableData] = useState<TableRow[]>([
@@ -107,6 +108,7 @@ export default function MaterialReceipt() {
   ])
 
   const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -115,12 +117,15 @@ export default function MaterialReceipt() {
     if (name === 'warehouseNumber' && value.trim() !== '') {
       fetchWarehouseData(value)
     }
+
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }))
+    }
   }
 
   const fetchWarehouseData = async (wrId: string) => {
     setIsLoading(true)
     try {
-      // First, check if MR is already entered
       const mrCheckResponse = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/getWRMRcheck?wr_id=${wrId}`)
       if (!mrCheckResponse.ok) {
         throw new Error('Failed to check MR status')
@@ -133,7 +138,6 @@ export default function MaterialReceipt() {
         return
       }
 
-      // If MR is not entered, proceed with fetching warehouse data
       const response = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${wrId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch warehouse data')
@@ -162,7 +166,6 @@ export default function MaterialReceipt() {
           location: item[5] || ''
         })))
 
-        // Fetch PO data after setting the PO number
         if (wrInfo[9]) {
           fetchPOData(wrInfo[9])
         }
@@ -215,6 +218,8 @@ export default function MaterialReceipt() {
       newData[index] = { ...newData[index], [field]: value }
       setTableData(newData)
     }
+
+    setErrors(prev => ({ ...prev, [isAdditional ? 'additionalTable' : 'table']: '' }))
   }
 
   const handleAddRow = (isAdditional: boolean = false) => {
@@ -248,11 +253,10 @@ export default function MaterialReceipt() {
   }
 
   const generatePDF = async () => {
-    console.log('Generating PDF...');
+    console.log('Generating PDF...')
     try {
       const doc = new jsPDF()
     
-      // Set document properties
       doc.setProperties({
         title: `Material Receipt - ${formData.warehouseNumber}`,
         subject: 'Material Receipt',
@@ -261,37 +265,30 @@ export default function MaterialReceipt() {
         creator: 'WMS Express System'
       })
 
-      // Generate QR code with error handling
       try {
         const qrCodeDataUrl = await QRCode.toDataURL(formData.warehouseNumber)
-        // Add QR code
         doc.addImage(qrCodeDataUrl, 'PNG', 170, 10, 30, 30)
       } catch (error) {
         console.error('Failed to generate QR code:', error)
-        // Fallback: Add text instead of QR code
         doc.setFontSize(10)
         doc.text(`WR: ${formData.warehouseNumber}`, 170, 20)
       }
 
-      // Add title
       doc.setFontSize(24)
-      doc.setTextColor(44, 62, 80) // Dark blue color
+      doc.setTextColor(44, 62, 80)
       doc.text('Material Receipt', 50, 30)
 
-      // Add horizontal line
-      doc.setDrawColor(52, 152, 219) // Blue color
+      doc.setDrawColor(52, 152, 219)
       doc.setLineWidth(0.5)
       doc.line(14, 45, 196, 45)
 
-      // Add form data
       doc.setFontSize(12)
-      doc.setTextColor(0, 0, 0) // Black color
+      doc.setTextColor(0, 0, 0)
 
       const leftColumnX = 14
       const rightColumnX = 110
       let yPosition = 55
 
-      // Helper function to add a field
       const addField = (label: string, value: string, x: number) => {
         doc.setFont("helvetica", "bold")
         doc.text(label, x, yPosition)
@@ -300,20 +297,17 @@ export default function MaterialReceipt() {
         yPosition += 15
       }
 
-      // Left column
       addField("Warehouse Number:", formData.warehouseNumber, leftColumnX)
       addField("Client:", formData.client, leftColumnX)
       addField("PO#:", formData.po, leftColumnX)
+      addField("Entered By:", formData.enteredBy, leftColumnX)
 
-      // Reset Y position for right column
       yPosition = 55
 
-      // Right column
       addField("Receipt Date:", formData.receiptDate, rightColumnX)
       addField("Carrier:", formData.carrier, rightColumnX)
       addField("Tracking Number:", formData.tracking, rightColumnX)
 
-      // Add box details table
       yPosition += 20
       autoTable(doc, {
         startY: yPosition,
@@ -328,9 +322,8 @@ export default function MaterialReceipt() {
         },
       })
 
-      // Add item details table
-      const lastAutoTable = (doc as any).lastAutoTable;
-      yPosition = lastAutoTable ? lastAutoTable.finalY + 20 : yPosition + 20;
+      const lastAutoTable = (doc as any).lastAutoTable
+      yPosition = lastAutoTable ? lastAutoTable.finalY + 20 : yPosition + 20
       autoTable(doc, {
         startY: yPosition,
         head: [['Item #', 'Part ID', 'Description', 'Quantity Order', 'Quantity Received', 'Total Quantity', 'Box ID']],
@@ -344,7 +337,6 @@ export default function MaterialReceipt() {
         },
       })
 
-      // Add footer
       const pageCount = doc.getNumberOfPages()
       doc.setFont("helvetica", "italic")
       doc.setFontSize(10)
@@ -358,9 +350,8 @@ export default function MaterialReceipt() {
         )
       }
     
-      // Save the PDF
       doc.save(`material_receipt_${formData.warehouseNumber}.pdf`)
-      console.log('PDF generated and saved successfully');
+      console.log('PDF generated and saved successfully')
       toast.success('PDF generated and downloaded successfully.')
     } catch (error) {
       console.error('Error generating PDF:', error)
@@ -368,14 +359,36 @@ export default function MaterialReceipt() {
     }
   }
 
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {}
+
+    if (!formData.warehouseNumber.trim()) newErrors.warehouseNumber = 'Warehouse Number is required'
+    if (!formData.enteredBy.trim()) newErrors.enteredBy = 'Entered by is required'
+
+    if (tableData.some(row => Object.values(row).some(value => !value.trim()))) {
+      newErrors.table = 'All fields in the box details table must be filled'
+    }
+
+    if (additionalTableData.some(row => !row.quantity.trim() || !row.boxId.trim())) {
+      newErrors.additionalTable = 'Quantity and Box ID must be filled for all items'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
     setIsLoading(true)
-    console.log('Form submission started');
+    console.log('Form submission started')
     
-    // Format the data as required by the API
     const formattedData = [
-      [formData.warehouseNumber, formData.client, ""], // wr_id, entered_by, notes
+      [formData.warehouseNumber, formData.enteredBy, ""],
       ...additionalTableData.map(row => [
         formData.warehouseNumber,
         row.quantity,
@@ -385,7 +398,7 @@ export default function MaterialReceipt() {
     ]
 
     try {
-      console.log('Sending data to API...');
+      console.log('Sending data to API...')
       const response = await fetch('https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/putMR', {
         method: 'POST',
         headers: {
@@ -395,13 +408,13 @@ export default function MaterialReceipt() {
       })
 
       if (response.ok) {
-        console.log('API response successful');
+        console.log('API response successful')
         toast.success('Material Receipt submitted successfully!')
-        console.log('Initiating PDF generation...');
-        await generatePDF() // Generate and download PDF immediately after successful submission
-        console.log('PDF generation completed');
+        console.log('Initiating PDF generation...')
+        await generatePDF()
+        console.log('PDF generation completed')
       } else {
-        console.log('API response not OK:', response.status);
+        console.log('API response not OK:', response.status)
         throw new Error('Failed to submit Material Receipt')
       }
     } catch (error) {
@@ -409,7 +422,7 @@ export default function MaterialReceipt() {
       toast.error('Failed to submit Material Receipt. Please try again.')
     } finally {
       setIsLoading(false)
-      console.log('Form submission process completed');
+      console.log('Form submission process completed')
     }
   }
 
@@ -420,7 +433,8 @@ export default function MaterialReceipt() {
       receiptDate: '',
       po: '',
       carrier: '',
-      tracking: ''
+      tracking: '',
+      enteredBy: ''
     })
     setTableData([{ number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])
     setAdditionalTableData([{ itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }])
@@ -445,13 +459,28 @@ export default function MaterialReceipt() {
                 Warehouse Number
               </label>
               <input
-                className="w-full p-2 border rounded-md"
+                className={`w-full p-2 border rounded-md ${errors.warehouseNumber ? 'border-red-500' : ''}`}
                 id="warehouseNumber"
                 type="text"
                 name="warehouseNumber"
                 value={formData.warehouseNumber}
                 onChange={handleInputChange}
               />
+              {errors.warehouseNumber && <p className="text-red-500 text-xs italic">{errors.warehouseNumber}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2" htmlFor="enteredBy">
+                Entered by
+              </label>
+              <input
+                className={`w-full p-2 border rounded-md ${errors.enteredBy ? 'border-red-500' : ''}`}
+                id="enteredBy"
+                type="text"
+                name="enteredBy"
+                value={formData.enteredBy}
+                onChange={handleInputChange}
+              />
+              {errors.enteredBy && <p className="text-red-500 text-xs italic">{errors.enteredBy}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium mb-2" htmlFor="client">
@@ -549,7 +578,7 @@ export default function MaterialReceipt() {
                           <input
                             type="text"
                             name={key}
-                            className="w-full p-1 border rounded-md"
+                            className={`w-full p-1 border rounded-md ${errors.table ? 'border-red-500' : ''}`}
                             value={row[key as keyof TableRow]}
                             onChange={(e) => handleTableInputChange(index, key, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, index, key)}
@@ -570,6 +599,7 @@ export default function MaterialReceipt() {
                   ))}
                 </tbody>
               </table>
+              {errors.table && <p className="text-red-500 text-xs italic mb-4">{errors.table}</p>}
               <div className="flex justify-between items-center mb-4">
                 <Button type="button" onClick={() => handleAddRow()}>
                   Add Row
@@ -597,7 +627,7 @@ export default function MaterialReceipt() {
                           <input
                             type="text"
                             name={`${key}Additional`}
-                            className="w-full p-1 border rounded-md"
+                            className={`w-full p-1 border rounded-md ${errors.additionalTable && (key === 'quantity' || key === 'boxId') ? 'border-red-500' : ''}`}
                             value={row[key as keyof AdditionalTableRow]}
                             onChange={(e) => handleTableInputChange(index, key, e.target.value, true)}
                             onKeyDown={(e) => handleKeyDown(e, index, key, true)}
@@ -619,6 +649,7 @@ export default function MaterialReceipt() {
                   ))}
                 </tbody>
               </table>
+              {errors.additionalTable && <p className="text-red-500 text-xs italic mb-4">{errors.additionalTable}</p>}
               <div className="flex justify-between items-center mb-4">
                 <Button type="button" onClick={() => handleAddRow(true)}>
                   Add Row
