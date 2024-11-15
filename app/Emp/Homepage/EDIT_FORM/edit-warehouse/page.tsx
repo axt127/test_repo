@@ -63,6 +63,7 @@ function Navigation() {
               { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
               { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
               { href: "/Emp/Homepage/EDIT_FORM/view_po", label: "View PO", icon: Edit },
+              { href: "/Emp/Homepage/EDIT_FORM/view_mr", label: "View MR", icon: Edit },
             ].map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
