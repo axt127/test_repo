@@ -3,99 +3,147 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CognitoUser, AuthenticationDetails, CognitoUserPool } from 'amazon-cognito-identity-js'
+
+// Cognito configuration
+const poolData = {
+  UserPoolId: "us-east-1_dVmG7KZyD",
+  ClientId: "q352maej1orc892dd55riiae4"
+}
+
+const userPool = new CognitoUserPool(poolData)
+
+// Define a type for the form inputs
+type LoginInputs = {
+  username: string
+  password: string
+}
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [inputs, setInputs] = useState<LoginInputs>({ username: '', password: '' })
   const [errorMessage, setErrorMessage] = useState('')
-  const [imageError, setImageError] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   const router = useRouter()
 
-  const handleClientLogin = async (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputs(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (email === 'emp@gmail.com' && password === '1') {
-      console.log('Employee login successful, attempting to navigate...')
-      try {
-        await router.push('/Emp/Homepage')
-        console.log('Navigation completed')
-      } catch (error) {
-        console.error('Navigation failed:', error)
-        window.location.href = '/employee'
+    setIsLoading(true)
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    const user = new CognitoUser({
+      Username: inputs.username,
+      Pool: userPool
+    })
+
+    const authDetails = new AuthenticationDetails({
+      Username: inputs.username,
+      Password: inputs.password
+    })
+
+    user.authenticateUser(authDetails, {
+      onSuccess: (data) => {
+        console.log("Sign-in success:", data)
+        setIsLoading(false)
+        setSuccessMessage('Login successful!')
+        // In a real application, you would handle the session and redirect here
+        // For demonstration, we'll just show a success message
+      },
+      onFailure: (err) => {
+        console.error("Sign-in error:", err)
+        setErrorMessage(err.message || "An error occurred during sign-in.")
+        setIsLoading(false)
+      },
+      newPasswordRequired: (data) => {
+        console.log("New password required")
+        setErrorMessage("New password required. Please contact support.")
+        setIsLoading(false)
       }
-    } else if (email === 'cli@gmail.com' && password === '1') {
-      console.log('Client login successful, attempting to navigate...')
-      try {
-        await router.push('/client/HomePage')
-        console.log('Navigation completed')
-      } catch (error) {
-        console.error('Navigation failed:', error)
-        window.location.href = '/client/homepage'
-      }
-    } else {
-      setErrorMessage('Invalid email or password')
-    }
+    })
+  }
+
+  const fillTestData = () => {
+    setInputs({ username: 'Marcel', password: 'Razor@1002' })
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-white">
-      <div className="relative w-[150px] h-[150px] mb-8">
-        {!imageError ? (
-          <Image
-            src="/wex.png"
-            alt="Wex Logo"
-            fill
-            style={{ objectFit: 'contain' }}
-            priority
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
-            Logo not found
-          </div>
-        )}
-      </div>
-
-      <div className="w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Sign in</h2>
-        <form onSubmit={handleClientLogin} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-              Email:
-            </label>
-            <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/wex.png"
+              alt="Wex Logo"
+              width={150}
+              height={150}
+              priority
             />
           </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-              Password:
-            </label>
-            <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {errorMessage && <p className="text-red-500 text-xs italic mb-4">{errorMessage}</p>}
-          <div className="flex items-center justify-between">
-            <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              type="submit"
-            >
-              Submit
-            </button>
-          </div>
-        </form>
-      </div>
+          <CardTitle className="text-2xl font-bold text-center">Sign in</CardTitle>
+          <CardDescription>Enter your username and password to login</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                placeholder="Username"
+                value={inputs.username}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={inputs.password}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            {successMessage && (
+              <Alert variant="default" className="bg-green-50 text-green-800 border-green-300">
+                <AlertDescription>{successMessage}</AlertDescription>
+              </Alert>
+            )}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </form>
+          <Button onClick={fillTestData} variant="outline" className="w-full mt-4">
+            Fill Test Data
+          </Button>
+        </CardContent>
+        <CardFooter>
+          <p className="text-sm text-center text-gray-600 mt-4 w-full">
+            Don&apos;t have an account? <a href="#" className="text-blue-600 hover:underline">Sign up</a>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   )
 }
