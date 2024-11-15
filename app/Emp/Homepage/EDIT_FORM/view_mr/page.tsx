@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { LogOut, Home, FileText, ShoppingCart, Package, Edit, Search } from 'lucide-react'
+import { LogOut, Home, FileText, ShoppingCart, Package, Edit, Search, Trash2 } from 'lucide-react'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import axios from 'axios'
@@ -96,6 +96,7 @@ export default function ViewMaterialReceipt() {
   const [boxDetails, setBoxDetails] = useState<BoxDetail[]>([])
   const [itemDetails, setItemDetails] = useState<ItemDetail[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchAllMRNumbers()
@@ -231,6 +232,40 @@ export default function ViewMaterialReceipt() {
       toast.error('Failed to fetch data. Please try again.')
     } finally {
       setIsSearching(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!searchQuery) {
+      toast.error('Please search for a Material Receipt before deleting.')
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await axios.delete(`https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/DeleteMR?wr_id=${searchQuery}`)
+      if (response.status === 200) {
+        toast.success('Material Receipt deleted successfully')
+        // Reset the form and clear the displayed data
+        setSearchQuery('')
+        setMRInfo({
+          warehouseNumber: '',
+          client: '',
+          receiptDate: '',
+          po: '',
+          carrier: '',
+          tracking: ''
+        })
+        setBoxDetails([])
+        setItemDetails([])
+      } else {
+        toast.error('Failed to delete Material Receipt')
+      }
+    } catch (error) {
+      console.error('Error deleting Material Receipt:', error)
+      toast.error('An error occurred while deleting the Material Receipt')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -374,6 +409,18 @@ export default function ViewMaterialReceipt() {
                 </Table>
               </CardContent>
             </Card>
+
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                variant="destructive"
+                className="flex items-center"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Material Receipt'}
+                <Trash2 className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
