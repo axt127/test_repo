@@ -6,12 +6,12 @@ import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CognitoUser, AuthenticationDetails, CognitoUserPool } from 'amazon-cognito-identity-js'
+import axios from 'axios'
 
-// Cognito configuration
 const poolData = {
   UserPoolId: "us-east-1_dVmG7KZyD",
   ClientId: "q352maej1orc892dd55riiae4"
@@ -19,7 +19,6 @@ const poolData = {
 
 const userPool = new CognitoUserPool(poolData)
 
-// Define a type for the form inputs
 type LoginInputs = {
   username: string
   password: string
@@ -54,12 +53,25 @@ export default function Login() {
     })
 
     user.authenticateUser(authDetails, {
-      onSuccess: (data) => {
+      onSuccess: async (data) => {
         console.log("Sign-in success:", data)
-        setIsLoading(false)
         setSuccessMessage('Login successful!')
-        // In a real application, you would handle the session and redirect here
-        // For demonstration, we'll just show a success message
+        
+        try {
+          const response = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/login?username=${inputs.username}`)
+          const userType = response.data
+          
+          if (userType === 'employee') {
+            router.push('/Emp/Homepage')
+          } else {
+            router.push(`/client/HomePage?clientName=${encodeURIComponent(userType)}`)
+          }
+        } catch (error) {
+          console.error("Error checking user type:", error)
+          setErrorMessage("An error occurred while processing your login. Please try again.")
+        }
+        
+        setIsLoading(false)
       },
       onFailure: (err) => {
         console.error("Sign-in error:", err)
@@ -72,10 +84,6 @@ export default function Login() {
         setIsLoading(false)
       }
     })
-  }
-
-  const fillTestData = () => {
-    setInputs({ username: 'Marcel', password: 'Razor@1002' })
   }
 
   return (
@@ -92,7 +100,6 @@ export default function Login() {
             />
           </div>
           <CardTitle className="text-2xl font-bold text-center">Sign in</CardTitle>
-          <CardDescription>Enter your username and password to login</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -134,15 +141,7 @@ export default function Login() {
               {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
-          <Button onClick={fillTestData} variant="outline" className="w-full mt-4">
-            Fill Test Data
-          </Button>
         </CardContent>
-        <CardFooter>
-          <p className="text-sm text-center text-gray-600 mt-4 w-full">
-            Don&apos;t have an account? <a href="#" className="text-blue-600 hover:underline">Sign up</a>
-          </p>
-        </CardFooter>
       </Card>
     </div>
   )
