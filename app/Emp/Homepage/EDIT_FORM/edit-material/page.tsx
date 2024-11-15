@@ -14,23 +14,22 @@ import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import axios from 'axios'
 
-interface BoxDetails {
+interface BoxDetail {
   number: string;
   type: string;
-  length: string;
-  width: string;
-  height: string;
-  weight: string;
+  length: number;
+  width: number;
+  height: number;
   location: string;
+  weight: number;
 }
 
-interface ItemDetails {
+interface ItemDetail {
   itemNumber: string;
   partId: string;
   description: string;
   quantityOrder: string;
   quantityReceived: string;
-  quantity: string;
   boxId: string;
 }
 
@@ -92,8 +91,8 @@ export default function ViewMaterialReceipt() {
     carrier: '',
     tracking: ''
   })
-  const [boxDetails, setBoxDetails] = useState<BoxDetails[]>([])
-  const [itemDetails, setItemDetails] = useState<ItemDetails[]>([])
+  const [boxDetails, setBoxDetails] = useState<BoxDetail[]>([])
+  const [itemDetails, setItemDetails] = useState<ItemDetail[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
   useEffect(() => {
@@ -123,79 +122,111 @@ export default function ViewMaterialReceipt() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
-    setFilteredMRNumbers([]) // Clear the dropdown
+    setFilteredMRNumbers([])
     if (!allMRNumbers.includes(searchQuery)) {
       toast.error('Invalid MR number. Please select from the list.')
       return
     }
     setIsSearching(true)
     try {
-      // Fetch MR data
-      const mrResponse = await axios.get(`https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/getMR?wr_id=${searchQuery}`)
-      if (mrResponse.status === 200 && mrResponse.data && Array.isArray(mrResponse.data) && mrResponse.data.length > 1) {
-        const [mrInfo, itemCount, ...mrItems] = mrResponse.data
+      // First, get the WR data to populate the MR info
+      const wrResponse = await axios.get(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${searchQuery}`)
+      console.log('WR Response:', wrResponse.data)
+      if (wrResponse.status === 200 && Array.isArray(wrResponse.data) && wrResponse.data.length > 1) {
+        const [wrInfo, boxCount, ...boxes] = wrResponse.data
         
-        // Fetch WR data
-        const wrResponse = await axios.get(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${searchQuery}`)
-        if (wrResponse.status === 200 && wrResponse.data && Array.isArray(wrResponse.data) && wrResponse.data.length > 1) {
-          const [wrInfo, boxCountArray, ...wrItems] = wrResponse.data
-          
-          if (Array.isArray(wrInfo) && wrInfo.length >= 10 && Array.isArray(boxCountArray) && boxCountArray.length > 0) {
-            setMRInfo({
-              warehouseNumber: wrInfo[0] || '',
-              client: wrInfo[1] || '',
-              receiptDate: wrInfo[4] ? new Date(wrInfo[4]).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '',
-              po: wrInfo[9] || '',
-              carrier: wrInfo[2] || '',
-              tracking: wrInfo[3] || ''
-            })
+        setMRInfo({
+          warehouseNumber: wrInfo[0] || '',
+          client: wrInfo[1] || '',
+          receiptDate: wrInfo[4] ? new Date(wrInfo[4]).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '',
+          po: wrInfo[9] || '',
+          carrier: wrInfo[2] || '',
+          tracking: wrInfo[3] || ''
+        })
 
-            // Update box details using WR data
-            const numBoxes = parseInt(boxCountArray[0]) || 0
-            setBoxDetails(wrItems.slice(0, numBoxes).map((box: any) => ({
-              number: Array.isArray(box) && box[0] ? box[0] : '',
-              type: Array.isArray(box) && box[1] ? box[1] : '',
-              length: Array.isArray(box) && box[2] ? box[2].toString() : '',
-              width: Array.isArray(box) && box[3] ? box[3].toString() : '',
-              height: Array.isArray(box) && box[4] ? box[4].toString() : '',
-              weight: Array.isArray(box) && box[6] ? box[6].toString() : '',
-              location: Array.isArray(box) && box[5] ? box[5] : ''
-            })))
+        const parsedBoxDetails: BoxDetail[] = boxes.map((box: any) => ({
+          number: box[0],
+          type: box[1],
+          length: box[2],
+          width: box[3],
+          height: box[4],
+          location: box[5],
+          weight: box[6]
+        }))
+        setBoxDetails(parsedBoxDetails)
 
-            // Fetch PO data
-            if (wrInfo[9]) {
-              const poResponse = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${wrInfo[9]}`)
-              if (poResponse.status === 200 && poResponse.data && Array.isArray(poResponse.data) && poResponse.data.length > 2) {
-                const [poInfo, poItemCount, ...poItems] = poResponse.data
+        if (wrInfo[9]) {
+          try {
+            // Fetch PO details using the new API
+            const poResponse = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${wrInfo[9]}`)
+            console.log('PO Response:', poResponse.data)
+            
+            if (poResponse.status === 200 && Array.isArray(poResponse.data) && poResponse.data.length > 2) {
+              const [poHeader, itemCount, ...poItems] = poResponse.data
+              
+              // Create a map of line number to PO item details
+              const poItemMap = new Map(poItems.map(item => [item[2], item]))
+              
+              // Fetch ViewPo details for quantity received and boxID
+              const viewPoResponse = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/ViewPo?wr_po=${wrInfo[9]}`)
+              console.log('ViewPo Response:', viewPoResponse.data)
+              
+              if (viewPoResponse.status === 200 && viewPoResponse.data.body) {
+                const viewPoItems = JSON.parse(viewPoResponse.data.body)
                 
-                setItemDetails(poItems.map((poItem: any, index: number) => {
-                  const mrItem = mrItems[index] || []
-                  return {
-                    itemNumber: Array.isArray(poItem) && poItem[2] ? poItem[2].toString() : '',
-                    partId: Array.isArray(poItem) && poItem[3] ? poItem[3] : '',
-                    description: Array.isArray(poItem) && poItem[4] ? poItem[4] : '',
-                    quantityOrder: Array.isArray(poItem) && poItem[5] ? poItem[5].toString() : '',
-                    quantityReceived: Array.isArray(mrItem) && mrItem[4] ? mrItem[4].toString() : '',
-                    quantity: Array.isArray(mrItem) && mrItem[5] ? mrItem[5].toString() : '',
-                    boxId: Array.isArray(mrItem) && mrItem[6] ? mrItem[6] : ''
+                // Create a map of line number to ViewPo item details
+                const viewPoItemMap = viewPoItems.reduce((acc, item) => {
+                  if (!acc[item.line]) {
+                    acc[item.line] = { quantityReceived: 0, boxIds: new Set() }
                   }
-                }))
+                  acc[item.line].quantityReceived += parseInt(item.qtyReceived, 10) || 0
+                  if (item.boxid) acc[item.line].boxIds.add(item.boxid)
+                  return acc
+                }, {})
+                
+                // Combine data from both APIs to create the final item details
+                const formattedItemDetails = poItems.map((poItem: any) => {
+                  const lineNumber = poItem[2]
+                  const viewPoItem = viewPoItemMap[lineNumber] || { quantityReceived: 0, boxIds: new Set() }
+                  return {
+                    itemNumber: lineNumber?.toString() || '',
+                    partId: poItem[3] || '',
+                    description: poItem[4] || '',
+                    quantityOrder: poItem[5]?.toString() || '',
+                    quantityReceived: viewPoItem.quantityReceived.toString(),
+                    boxId: Array.from(viewPoItem.boxIds).join(', ')
+                  }
+                })
+
+                console.log('Formatted Item Details:', formattedItemDetails)
+                setItemDetails(formattedItemDetails)
+              } else {
+                console.error('Invalid response from ViewPo API:', viewPoResponse)
+                toast.error('Invalid response from ViewPo API')
+                setItemDetails([])
               }
+            } else {
+              console.error('Invalid response from PO API:', poResponse)
+              toast.error('Invalid response from PO API')
+              setItemDetails([])
             }
-          } else {
-            throw new Error('Invalid WR data structure')
+          } catch (error) {
+            console.error('Error fetching PO or ViewPo details:', error)
+            toast.error('Failed to fetch PO or ViewPo details. Please try again.')
+            setItemDetails([])
           }
         } else {
-          throw new Error('Invalid WR response')
+          console.warn('No PO number found in WR data')
+          toast.warn('No Purchase Order number found for this Material Receipt.')
+          setItemDetails([])
         }
       } else {
-        throw new Error('Invalid MR response')
+        console.error('Invalid response from Warehouse Receipt API:', wrResponse)
+        toast.error('Invalid response from Warehouse Receipt API')
       }
     } catch (error) {
       console.error('Error fetching data:', error)
       toast.error('Failed to fetch data. Please try again.')
-      setBoxDetails([])
-      setItemDetails([])
     } finally {
       setIsSearching(false)
     }
@@ -205,46 +236,40 @@ export default function ViewMaterialReceipt() {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8 space-y-6">
-        <h1 className="text-3xl font-bold text-primary mb-6">View Material Receipt</h1>
-        
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Search Material Receipt</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative flex-grow">
-                <Input
-                  type="text"
-                  placeholder="Enter Material Receipt Number"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full"
-                />
-                {filteredMRNumbers.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-b-md shadow-lg max-h-60 overflow-y-auto">
-                    {filteredMRNumbers.map((id) => (
-                      <li
-                        key={id}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          setSearchQuery(id)
-                          setFilteredMRNumbers([])
-                        }}
-                      >
-                        {id}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <Button type="submit" disabled={isSearching}>
-                {isSearching ? 'Searching...' : 'Search'}
-                <Search className="ml-2 h-4 w-4" />
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-primary mb-4">View Material Receipt</h1>
+          <form onSubmit={handleSearch} className="flex w-full max-w-3xl gap-2">
+            <div className="relative flex-grow">
+              <Input
+                type="text"
+                placeholder="Enter Material Receipt Number"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full"
+              />
+              {filteredMRNumbers.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-b-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredMRNumbers.map((id) => (
+                    <li
+                      key={id}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        setSearchQuery(id)
+                        setFilteredMRNumbers([])
+                      }}
+                    >
+                      {id}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <Button type="submit" disabled={isSearching}>
+              {isSearching ? 'Searching...' : 'Search'}
+              <Search className="ml-2 h-4 w-4" />
+            </Button>
+          </form>
+        </div>
 
         {mrInfo.warehouseNumber && (
           <div className="space-y-6">
@@ -253,28 +278,28 @@ export default function ViewMaterialReceipt() {
                 <CardTitle>Material Receipt Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <Label htmlFor="warehouseNumber">Warehouse Number</Label>
                     <Input id="warehouseNumber" value={mrInfo.warehouseNumber} readOnly />
                   </div>
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="client">Client</Label>
                     <Input id="client" value={mrInfo.client} readOnly />
                   </div>
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="receiptDate">Receipt Date</Label>
                     <Input id="receiptDate" value={mrInfo.receiptDate} readOnly />
                   </div>
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="po">PO</Label>
                     <Input id="po" value={mrInfo.po} readOnly />
                   </div>
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="carrier">Carrier</Label>
                     <Input id="carrier" value={mrInfo.carrier} readOnly />
                   </div>
-                  <div className="space-y-2">
+                  <div>
                     <Label htmlFor="tracking">Tracking #</Label>
                     <Input id="tracking" value={mrInfo.tracking} readOnly />
                   </div>
@@ -295,8 +320,8 @@ export default function ViewMaterialReceipt() {
                       <TableHead>Length</TableHead>
                       <TableHead>Width</TableHead>
                       <TableHead>Height</TableHead>
-                      <TableHead>Weight</TableHead>
                       <TableHead>Location</TableHead>
+                      <TableHead>Weight</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -307,8 +332,8 @@ export default function ViewMaterialReceipt() {
                         <TableCell>{box.length}</TableCell>
                         <TableCell>{box.width}</TableCell>
                         <TableCell>{box.height}</TableCell>
-                        <TableCell>{box.weight}</TableCell>
                         <TableCell>{box.location}</TableCell>
+                        <TableCell>{box.weight}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -329,7 +354,6 @@ export default function ViewMaterialReceipt() {
                       <TableHead>Description</TableHead>
                       <TableHead>Quantity Order</TableHead>
                       <TableHead>Quantity Received</TableHead>
-                      <TableHead>Total Quantity</TableHead>
                       <TableHead>Box ID</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -341,7 +365,6 @@ export default function ViewMaterialReceipt() {
                         <TableCell>{item.description}</TableCell>
                         <TableCell>{item.quantityOrder}</TableCell>
                         <TableCell>{item.quantityReceived}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
                         <TableCell>{item.boxId}</TableCell>
                       </TableRow>
                     ))}
