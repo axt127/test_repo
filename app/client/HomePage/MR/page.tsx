@@ -7,10 +7,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { X, Home, FileText, ShoppingCart, Package } from 'lucide-react'
+import { X, Home, FileText, ShoppingCart, Package, LogOut } from 'lucide-react'
+import { useClient } from '@/app/ClientContext'
 
 interface MaterialReceipt {
-  mrId: string; // Changed from wrId to mrId
+  mrId: string;
   enteredBy: string;
   notes: string;
   items: {
@@ -21,7 +22,7 @@ interface MaterialReceipt {
   }[];
 }
 
-function Navigation() {
+function Navigation({ handleLogout, clientName }: { handleLogout: () => void; clientName: string }) {
   return (
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -45,7 +46,13 @@ function Navigation() {
               </Link>
             ))}
           </div>
-          <div className="w-[50px]"></div>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm">Client: {clientName}</span>
+            <Button onClick={handleLogout} className="flex items-center" variant="secondary">
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
     </nav>
@@ -60,6 +67,7 @@ export default function MaterialReceiptViewer() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const { clientName } = useClient()
 
   const fetchMaterialReceipt = useCallback(async (mrNumber: string) => {
     setIsLoading(true)
@@ -73,7 +81,7 @@ export default function MaterialReceiptViewer() {
         const [headerData, ...itemsData] = data
 
         setMaterialReceipt({
-          mrId: headerData[0] || '', // Changed from wrId to mrId
+          mrId: headerData[0] || '',
           enteredBy: headerData[1] || '',
           notes: headerData[2] || '',
           items: itemsData.map(item => ({
@@ -121,12 +129,16 @@ export default function MaterialReceiptViewer() {
     setHasSearched(false)
   }
 
+  const handleLogout = () => {
+    router.push('/login')
+  }
+
   const inputClass = "shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline " + 
     (hasSearched ? "text-gray-700 bg-white" : "text-gray-400 bg-gray-100")
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <Navigation handleLogout={handleLogout} clientName={clientName} />
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Material Receipt Viewer</h1>
