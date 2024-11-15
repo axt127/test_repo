@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { X, Home, FileText, ShoppingCart, Package } from 'lucide-react'
 
 interface MaterialReceipt {
-  mrId: string; // Changed from wrId to mrId
+  wrId: string; // Changed from wrId to mrId
   enteredBy: string;
   notes: string;
   items: {
@@ -73,7 +73,7 @@ export default function MaterialReceiptViewer() {
         const [headerData, ...itemsData] = data
 
         setMaterialReceipt({
-          mrId: headerData[0] || '', // Changed from wrId to mrId
+          wrId: headerData[0] || '', // Changed from wrId to mrId
           enteredBy: headerData[1] || '',
           notes: headerData[2] || '',
           items: itemsData.map(item => ({
@@ -172,7 +172,7 @@ export default function MaterialReceiptViewer() {
                 id="mrId"
                 type="text"
                 name="mrId"
-                value={materialReceipt?.mrId || ''}
+                value={materialReceipt?.wrId || ''}
                 readOnly
               />
             </div>

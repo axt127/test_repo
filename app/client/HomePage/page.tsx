@@ -100,7 +100,7 @@ export default function Homepage() {
       setError(null);
       try {
         const response = await axios.get<ReceiptData[]>(
-          'https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=David Burris'
+          'https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=Marcel'
         );
         console.log('API Response:', response.data);
         setReceipts(response.data);
