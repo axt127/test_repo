@@ -8,6 +8,7 @@ import axios from 'axios'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { X, Home, FileText, ShoppingCart, Package } from 'lucide-react'
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 
 interface WarehouseReceipt {
   wrNumber: string;
@@ -28,6 +29,7 @@ interface WarehouseReceipt {
     weight: string;
     location: string;
   }[];
+  images: string[];
 }
 
 function Navigation() {
@@ -81,6 +83,9 @@ export default function WarehouseReceiptViewer() {
       if (Array.isArray(data) && data.length >= 2) {
         const [wrDetails, , ...boxesData] = data
 
+        const imagesResponse = await axios.get(`https://zol0yn9wc2.execute-api.us-east-1.amazonaws.com/prod/getPhoto?wr_id=${wrNumber}`)
+        const imagesData = imagesResponse.data
+
         setWarehouseReceipt({
           wrNumber: wrDetails[0] || '',
           client: wrDetails[1] || '',
@@ -99,7 +104,8 @@ export default function WarehouseReceiptViewer() {
             height: box[4] || '',
             weight: box[6] || '', 
             location: box[5] || '' 
-          }))
+          })),
+          images: imagesData || []
         })
       } else {
         setError('No data found for this WR number')
@@ -287,6 +293,48 @@ export default function WarehouseReceiptViewer() {
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="mb-4">
+            <h2 className="text-xl font-bold mb-2">Order Images</h2>
+            {hasSearched && warehouseReceipt?.images && warehouseReceipt.images.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+                {warehouseReceipt.images.map((imageUrl, index) => (
+                  <Dialog key={index}>
+                    <DialogTrigger asChild>
+                      <button className="relative w-full pt-[100%] overflow-hidden rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                        <Image
+                          src={imageUrl}
+                          alt={`Warehouse Receipt Image ${index + 1}`}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                          className="rounded-md transition-transform hover:scale-105"
+                        />
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0">
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <Image
+                          src={imageUrl}
+                          alt={`Enlarged Warehouse Receipt Image ${index + 1}`}
+                          width={1200}
+                          height={1200}
+                          style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
+                        />
+                        <button
+                          className="absolute top-2 right-2 bg-background/80 rounded-full p-2"
+                          onClick={() => document.body.click()}
+                          aria-label="Close enlarged image"
+                        >
+                          <X className="h-6 w-6" />
+                        </button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No images available for this warehouse receipt.</p>
+            )}
           </div>
         </div>
       </div>
