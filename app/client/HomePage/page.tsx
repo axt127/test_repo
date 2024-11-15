@@ -1,17 +1,17 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import {
   LogOut,
   Home,
   FileText,
   ShoppingCart,
   Package,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -19,15 +19,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import axios from 'axios';
+} from '@/components/ui/table'
+import axios from 'axios'
+import { useClient } from '../../ClientContext'
 
-type ReceiptData = [string, string, boolean];
+type ReceiptData = [string, string, boolean]
 
 interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ComponentType<any>;
+  href: string
+  label: string
+  icon: React.ComponentType<any>
 }
 
 const navItems: NavItem[] = [
@@ -35,12 +36,14 @@ const navItems: NavItem[] = [
   { href: '/client/HomePage/WR', label: 'Warehouse Receipt', icon: FileText },
   { href: '/client/HomePage/PO', label: 'Purchase Order', icon: ShoppingCart },
   { href: '/client/HomePage/MR', label: 'Material Receipt', icon: Package },
-];
+]
 
 function Navigation({
   handleLogout,
+  clientName,
 }: {
-  handleLogout: () => void;
+  handleLogout: () => void
+  clientName: string
 }): JSX.Element {
   return (
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
@@ -58,7 +61,7 @@ function Navigation({
           </div>
           <div className="flex justify-center space-x-1">
             {navItems.map((item) => {
-              const IconComponent = item.icon;
+              const IconComponent = item.icon
               return (
                 <Link key={item.href} href={item.href}>
                   <Button
@@ -70,58 +73,60 @@ function Navigation({
                     <span className="text-xs text-center">{item.label}</span>
                   </Button>
                 </Link>
-              );
+              )
             })}
           </div>
-          <Button
-            onClick={handleLogout}
-            className="flex items-center"
-            variant="secondary"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm">Client: {clientName}</span>
+            <Button
+              onClick={handleLogout}
+              className="flex items-center"
+              variant="secondary"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
     </nav>
-  );
+  )
 }
 
 export default function Homepage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const clientName = searchParams.get('clientName') || '';
-  const [receipts, setReceipts] = useState<ReceiptData[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter()
+  const { clientName } = useClient()
+  const [receipts, setReceipts] = useState<ReceiptData[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchRecentReceipts = async () => {
-      setIsLoading(true);
-      setError(null);
+      setIsLoading(true)
+      setError(null)
       try {
         const response = await axios.get<ReceiptData[]>(
           `https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=${encodeURIComponent(clientName)}`
-        );
-        console.log('API Response:', response.data);
-        setReceipts(response.data);
+        )
+        console.log('API Response:', response.data)
+        setReceipts(response.data)
       } catch (err) {
-        console.error('Error fetching receipts:', err);
-        setError('Failed to load receipts. Please try again later.');
+        console.error('Error fetching receipts:', err)
+        setError('Failed to load receipts. Please try again later.')
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
     if (clientName) {
-      fetchRecentReceipts();
+      fetchRecentReceipts()
     }
-  }, [clientName]);
+  }, [clientName])
 
   const handleLogout = () => {
-    router.push('/login');
-  };
+    router.push('/login')
+  }
 
   const filteredReceipts = searchTerm
     ? receipts.filter(
@@ -129,11 +134,11 @@ export default function Homepage() {
           receipt[0].toUpperCase().includes(searchTerm.toUpperCase()) ||
           receipt[1].toUpperCase().includes(searchTerm.toUpperCase())
       )
-    : receipts;
+    : receipts
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation handleLogout={handleLogout} />
+      <Navigation handleLogout={handleLogout} clientName={clientName} />
       <div className="container mx-auto px-4 py-8 relative">
         <div className="mb-8">
           <div className="mb-4 flex justify-center">
@@ -214,5 +219,5 @@ export default function Homepage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

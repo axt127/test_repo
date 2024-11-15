@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +12,7 @@ import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CognitoUser, AuthenticationDetails, CognitoUserPool } from 'amazon-cognito-identity-js'
 import axios from 'axios'
+import { useClient } from '../ClientContext'
 
 const poolData = {
   UserPoolId: "us-east-1_dVmG7KZyD",
@@ -31,6 +33,7 @@ export default function Login() {
   const [successMessage, setSuccessMessage] = useState('')
 
   const router = useRouter()
+  const { setClientName } = useClient()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputs(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -61,10 +64,12 @@ export default function Login() {
           const response = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/login?username=${inputs.username}`)
           const userType = response.data
           
+          setClientName(userType) // Set the client name in the context
+          
           if (userType === 'employee') {
             router.push('/Emp/Homepage')
           } else {
-            router.push(`/client/HomePage?clientName=${encodeURIComponent(userType)}`)
+            router.push('/client/HomePage')
           }
         } catch (error) {
           console.error("Error checking user type:", error)

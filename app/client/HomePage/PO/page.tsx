@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, KeyboardEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
-import { Save, Plus, Trash2, Search, X, Home, FileText, ShoppingCart, Package } from 'lucide-react'
+import { Save, Plus, Trash2, Search, X, Home, FileText, ShoppingCart, Package, LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableRow, TableHeader } from "@/components/ui/table"
 import Link from 'next/link'
 import Image from 'next/image'
+import { useClient } from '@/app/ClientContext'
 
 interface Item {
   itemNumber?: number
@@ -31,7 +32,7 @@ interface POInfo {
   client: string
 }
 
-function Navigation() {
+function Navigation({ handleLogout, clientName }: { handleLogout: () => void; clientName: string }) {
   return (
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -55,7 +56,13 @@ function Navigation() {
               </Link>
             ))}
           </div>
-          <div className="w-[50px]"></div>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm">Client: {clientName}</span>
+            <Button onClick={handleLogout} className="flex items-center" variant="secondary">
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
     </nav>
@@ -71,6 +78,7 @@ export default function PurchaseOrderViewer() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const { clientName } = useClient()
 
   const fetchPurchaseOrder = useCallback(async (poNumber: string) => {
     setIsLoading(true)
@@ -148,6 +156,10 @@ export default function PurchaseOrderViewer() {
     }
   }
 
+  const handleLogout = () => {
+    router.push('/login')
+  }
+
   const inputClass = "w-full p-2 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 " + 
     (hasSearched ? "text-gray-700 bg-white border-gray-300" : "text-gray-400 bg-gray-100 border-gray-200")
 
@@ -155,7 +167,7 @@ export default function PurchaseOrderViewer() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <Navigation handleLogout={handleLogout} clientName={clientName} />
       <div className="container mx-auto p-4 space-y-6">
         <h1 className="text-3xl font-bold">Purchase Order Viewer</h1>
         <form onSubmit={handleSearch} className="flex gap-4 mb-6">
@@ -295,6 +307,3 @@ export default function PurchaseOrderViewer() {
     </div>
   )
 }
-
-
-
