@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { LogOut, Home, FileText, ShoppingCart, Package, Search, ArrowLeft } from 'lucide-react'
+import { LogOut, Home, FileText, ShoppingCart, Package, Search, ArrowLeft, Edit } from 'lucide-react'
 
 interface Notification {
   type: 'success' | 'error';
@@ -79,6 +79,9 @@ function Navigation() {
               { href: "/Emp/Homepage/NEW_Form/warehouse-receipt", label: "Warehouse Receipt", icon: FileText },
               { href: "/Emp/Homepage/NEW_Form/purchase-order", label: "Purchase Order", icon: ShoppingCart },
               { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
+              { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
+              { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
+              { href: "/Emp/Homepage/EDIT_FORM/view_po", label: "View PO", icon: Edit },
             ].map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">

@@ -42,6 +42,7 @@ function Navigation() {
               { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
               { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
               { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
+              { href: "/Emp/Homepage/EDIT_FORM/view_po", label: "View PO", icon: Edit },
             ].map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
@@ -118,6 +119,20 @@ export default function MaterialReceipt() {
   const fetchWarehouseData = async (wrId: string) => {
     setIsLoading(true)
     try {
+      // First, check if MR is already entered
+      const mrCheckResponse = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/getWRMRcheck?wr_id=${wrId}`)
+      if (!mrCheckResponse.ok) {
+        throw new Error('Failed to check MR status')
+      }
+      const mrCheckData = await mrCheckResponse.json()
+      
+      if (mrCheckData === "MR already entered") {
+        toast.warning("MR already entered for this Warehouse Receipt")
+        resetForm()
+        return
+      }
+
+      // If MR is not entered, proceed with fetching warehouse data
       const response = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${wrId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch warehouse data')
@@ -395,6 +410,19 @@ export default function MaterialReceipt() {
       setIsLoading(false)
       console.log('Form submission process completed');
     }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      warehouseNumber: '',
+      client: '',
+      receiptDate: '',
+      po: '',
+      carrier: '',
+      tracking: ''
+    })
+    setTableData([{ number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])
+    setAdditionalTableData([{ itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }])
   }
 
   useEffect(() => {
