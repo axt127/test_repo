@@ -57,7 +57,7 @@ const initialFormData: FormData = {
 }
 
 const initialTableData: TableRow[] = [
-  { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
+  { number: '1', type: '', length: '', width: '', height: '', weight: '', location: '' }
 ]
 
 function Navigation() {
@@ -168,7 +168,7 @@ export default function Component() {
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, rowIndex: number, fieldIndex: number) => {
     if (e.key === 'Tab' && !e.shiftKey && rowIndex === tableData.length - 1 && fieldIndex === 6) {
       e.preventDefault()
-      const newRow = { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
+      const newRow = { number: (tableData.length + 1).toString(), type: '', length: '', width: '', height: '', weight: '', location: '' }
       setTableData(prevData => [...prevData, newRow])
       
       setTimeout(() => {
@@ -182,7 +182,7 @@ export default function Component() {
 
   const resetForm = () => {
     setFormData({ ...initialFormData, wrNumber: formData.wrNumber })
-    setTableData(initialTableData)
+    setTableData([{ number: '1', type: '', length: '', width: '', height: '', weight: '', location: '' }])
   }
 
   const fetchNewWRNumber = async () => {
@@ -294,7 +294,7 @@ export default function Component() {
     yPosition += 20 + (splitNotes.length * 7)
     autoTable(doc, {
       startY: yPosition,
-      head: [['Number', 'Type', 'Length', 'Width', 'Height', 'Weight', 'Location']],
+      head: [['Box ID', 'Type', 'Length', 'Width', 'Height', 'Weight', 'Location']],
       body: tableData.map(row => Object.values(row)),
       headStyles: { fillColor: [52, 152, 219], textColor: 255 },
       alternateRowStyles: { fillColor: [241, 245, 249] },
@@ -535,7 +535,7 @@ export default function Component() {
               <h2 className="text-xl font-bold">Box Details</h2>
               <Button 
                 onClick={() => {
-                  setTableData(prevData => [...prevData, { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }])
+                  setTableData(prevData => [...prevData, { number: (prevData.length + 1).toString(), type: '', length: '', width: '', height: '', weight: '', location: '' }])
                   toast.info('New row added to box details.')
                 }} 
                 type="button"
@@ -547,7 +547,7 @@ export default function Component() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th className="text-left p-2 border-b">Number</th>
+                    <th className="text-left p-2 border-b">Box ID</th>
                     <th className="text-left p-2 border-b">Type</th>
                     <th className="text-left p-2 border-b">Length</th>
                     <th className="text-left p-2 border-b">Width</th>
@@ -564,9 +564,10 @@ export default function Component() {
                           <input
                             type="text"
                             className="w-full p-2 border rounded-md"
-                            value={row[key as keyof typeof row]}
+                            value={key === 'number' ? (rowIndex + 1).toString() : row[key as keyof typeof row]}
                             onChange={(e) => handleTableInputChange(rowIndex, key, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, rowIndex, fieldIndex)}
+                            readOnly={key === 'number'}
                           />
                         </td>
                       ))}
