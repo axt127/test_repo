@@ -95,17 +95,14 @@ function ClientData({ clientName }: { clientName: string | null }) {
   const [clientWRs, setClientWRs] = useState<WarehouseReceipt[]>([])
   const [selectedWR, setSelectedWR] = useState<WRDetails | null>(null)
 
-  const fetchClientWRs = async () => 
-  {
+  const fetchClientWRs = async () => {
     try {
       const response = await fetch(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/GetWRforclient?client=${encodeURIComponent(clientName || '')}`)
       const data = await response.json()
       setClientWRs(data)
-      
     } catch (error) {
       console.error('Error fetching client WRs:', error)
     }
-    
   }
 
   const fetchWRDetails = async (wrId: string) => {

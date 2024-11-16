@@ -29,7 +29,7 @@ function Navigation({ handleLogout, clientName }: { handleLogout: () => void; cl
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
-            <span className="text-xl font-bold">WMS Express</span>
+            <span className="text-xl font-bold">WMS Xpress</span>
           </div>
           <div className="flex justify-center space-x-1">
             {[
@@ -77,7 +77,7 @@ function MaterialReceiptViewerContent() {
       const response = await axios.get(`https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/getMR?wr_id=${mrNumber}`)
       const data = response.data
 
-      if (Array.isArray(data) && data.length >= 2) {
+      if (Array.isArray(data) && data.length >= 3) {
         const [headerData, ...itemsData] = data
 
         setMaterialReceipt({

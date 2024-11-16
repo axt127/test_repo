@@ -1,17 +1,12 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import {
-  LogOut,
-  Home,
-  FileText,
-  ShoppingCart,
-  Package,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import React, { useState, useEffect, KeyboardEvent } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { LogOut, Home, FileText, ShoppingCart, Package, Search, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -19,16 +14,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import axios from 'axios'
-import { useClient } from '../../ClientContext'
+} from '@/components/ui/table';
+import axios from 'axios';
+import { useClient } from '../../ClientContext';
 
-type ReceiptData = [string, string, boolean]
+type ReceiptData = [string, string, boolean];
 
 interface NavItem {
-  href: string
-  label: string
-  icon: React.ComponentType<any>
+  href: string;
+  label: string;
+  icon: React.ComponentType<any>;
 }
 
 const navItems: NavItem[] = [
@@ -36,32 +31,20 @@ const navItems: NavItem[] = [
   { href: '/client/HomePage/WR', label: 'Warehouse Receipt', icon: FileText },
   { href: '/client/HomePage/PO', label: 'Purchase Order', icon: ShoppingCart },
   { href: '/client/HomePage/MR', label: 'Material Receipt', icon: Package },
-]
+];
 
-function Navigation({
-  handleLogout,
-  clientName,
-}: {
-  handleLogout: () => void
-  clientName: string
-}): JSX.Element {
+function Navigation({ handleLogout, clientName }: { handleLogout: () => void; clientName: string }): JSX.Element {
   return (
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
-            <Image
-              src="/wex.png"
-              alt="Wex Logo"
-              width={50}
-              height={50}
-              className="rounded-full"
-            />
+            <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
             <span className="text-xl font-bold">WMS Xpress</span>
           </div>
           <div className="flex justify-center space-x-1">
             {navItems.map((item) => {
-              const IconComponent = item.icon
+              const IconComponent = item.icon;
               return (
                 <Link key={item.href} href={item.href}>
                   <Button
@@ -73,16 +56,12 @@ function Navigation({
                     <span className="text-xs text-center">{item.label}</span>
                   </Button>
                 </Link>
-              )
+              );
             })}
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-sm">Client: {clientName}</span>
-            <Button
-              onClick={handleLogout}
-              className="flex items-center"
-              variant="secondary"
-            >
+            <Button onClick={handleLogout} className="flex items-center" variant="secondary">
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>
@@ -90,71 +69,121 @@ function Navigation({
         </div>
       </div>
     </nav>
-  )
+  );
 }
 
 export default function Homepage() {
-  const router = useRouter()
-  const { clientName } = useClient()
-  const [receipts, setReceipts] = useState<ReceiptData[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const { clientName } = useClient();
+  const [receipts, setReceipts] = useState<ReceiptData[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredReceipts, setFilteredReceipts] = useState<ReceiptData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false); // Added searching state
 
   useEffect(() => {
     const fetchRecentReceipts = async () => {
-      setIsLoading(true)
-      setError(null)
+      setIsLoading(true);
+      setError(null);
       try {
         const response = await axios.get<ReceiptData[]>(
           `https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getWR_PO_MR_forclient?client=${encodeURIComponent(clientName)}`
-        )
-        console.log('API Response:', response.data)
-        setReceipts(response.data)
+        );
+        setReceipts(response.data);
+        setFilteredReceipts(response.data);
       } catch (err) {
-        console.error('Error fetching receipts:', err)
-        setError('Failed to load receipts. Please try again later.')
+        console.error('Error fetching receipts:', err);
+        setError('Failed to load receipts. Please try again later.');
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
     if (clientName) {
-      fetchRecentReceipts()
+      fetchRecentReceipts();
     }
-  }, [clientName])
+  }, [clientName]);
 
   const handleLogout = () => {
-    router.push('/login')
-  }
+    router.push('/login');
+  };
 
-  const filteredReceipts = searchTerm
-    ? receipts.filter(
+  const handleSearch = () => {
+    setIsSearching(true); // Set isSearching to true before search
+    if (searchTerm === '') {
+      setFilteredReceipts(receipts);
+    } else {
+      const filtered = receipts.filter(
         (receipt) =>
           receipt[0].toUpperCase().includes(searchTerm.toUpperCase()) ||
           receipt[1].toUpperCase().includes(searchTerm.toUpperCase())
-      )
-    : receipts
+      );
+      setFilteredReceipts(filtered);
+    }
+    setTimeout(() => setIsSearching(false), 500); // Reset after 500ms for visual feedback
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    if (value === '') {
+      setFilteredReceipts(receipts);
+    } else {
+      const filtered = receipts.filter(
+        (receipt) =>
+          receipt[0].toUpperCase().includes(value.toUpperCase()) ||
+          receipt[1].toUpperCase().includes(value.toUpperCase())
+      );
+      setFilteredReceipts(filtered);
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    } else if (e.key === 'Backspace' && searchTerm === '') {
+      setFilteredReceipts(receipts);
+    }
+  };
+
+  const handleClear = () => {
+    setSearchTerm('');
+    setFilteredReceipts(receipts);
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation handleLogout={handleLogout} clientName={clientName} />
       <div className="container mx-auto px-4 py-8 relative">
-        {/* Welcome Message */}
         <h1 className="text-2xl font-bold mb-6 text-center">
           Welcome to WMS Xpress, {clientName}!
         </h1>
-
-        <div className="mb-8">
-          <div className="mb-4 flex justify-center">
-            <input
+        <div className="flex gap-4 mb-6 max-w-3xl mx-auto">
+          <div className="relative flex-grow">
+            <Input
               type="text"
               placeholder="Search by number (e.g., WR-012, PO987654)..."
-              className="border rounded-md p-2 w-full max-w-3xl"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              className="pr-10"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
+          <Button onClick={handleSearch} className="flex-shrink-0" disabled={isSearching}> {/* Updated Button */}
+            <Search className="mr-2 h-4 w-4" />
+            {isSearching ? 'Searching...' : 'Search'} {/* Conditional rendering */}
+          </Button>
         </div>
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8 max-w-3xl mx-auto">
@@ -215,7 +244,7 @@ export default function Homepage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-4">
-                    {searchTerm ? 'No results found' : 'No receipts available'}
+                    No results found
                   </TableCell>
                 </TableRow>
               )}
@@ -224,5 +253,5 @@ export default function Homepage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

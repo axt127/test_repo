@@ -71,7 +71,7 @@ function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
-            <span className="text-xl font-bold">WMS Express</span>
+            <span className="text-xl font-bold">WMS Xpress</span>
           </div>
           <div className="flex justify-center space-x-1">
             {[
