@@ -57,7 +57,7 @@ function Navigation({
               height={50}
               className="rounded-full"
             />
-            <span className="text-xl font-bold">WMS Express</span>
+            <span className="text-xl font-bold">WMS Xpress</span>
           </div>
           <div className="flex justify-center space-x-1">
             {navItems.map((item) => {
@@ -140,6 +140,11 @@ export default function Homepage() {
     <div className="min-h-screen bg-background">
       <Navigation handleLogout={handleLogout} clientName={clientName} />
       <div className="container mx-auto px-4 py-8 relative">
+        {/* Welcome Message */}
+        <h1 className="text-2xl font-bold mb-6 text-center">
+          Welcome to WMS Xpress, {clientName}!
+        </h1>
+
         <div className="mb-8">
           <div className="mb-4 flex justify-center">
             <input

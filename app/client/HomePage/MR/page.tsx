@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -59,7 +59,7 @@ function Navigation({ handleLogout, clientName }: { handleLogout: () => void; cl
   )
 }
 
-export default function MaterialReceiptViewer() {
+function MaterialReceiptViewerContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
@@ -283,5 +283,12 @@ export default function MaterialReceiptViewer() {
         </div>
       </div>
     </div>
+  )
+}
+export default function MaterialReceiptViewer() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MaterialReceiptViewerContent />
+    </Suspense>
   )
 }

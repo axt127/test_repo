@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, KeyboardEvent } from 'react'
+import { useState, useEffect, useCallback, KeyboardEvent, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -70,9 +70,21 @@ function Navigation({ handleLogout, clientName }: { handleLogout: () => void; cl
   )
 }
 
+function SearchComponent({ onSearch }: { onSearch: (wrNumber: string) => void }) {
+  const searchParams = useSearchParams()
+  const wrNumber = searchParams.get('wrNumber')
+
+  useEffect(() => {
+    if (wrNumber) {
+      onSearch(wrNumber)
+    }
+  }, [wrNumber, onSearch])
+
+  return null
+}
+
 export default function WarehouseReceiptViewer() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
   const [warehouseReceipt, setWarehouseReceipt] = useState<WarehouseReceipt | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -128,13 +140,6 @@ export default function WarehouseReceiptViewer() {
     }
   }, [])
 
-  useEffect(() => {
-    const wrNumber = searchParams.get('wrNumber')
-    if (wrNumber) {
-      fetchWarehouseReceipt(wrNumber)
-    }
-  }, [searchParams, fetchWarehouseReceipt])
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
@@ -185,6 +190,9 @@ export default function WarehouseReceiptViewer() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Warehouse Receipt Viewer</h1>
         </div>
+        <Suspense fallback={<div>Loading...</div>}>
+          <SearchComponent onSearch={fetchWarehouseReceipt} />
+        </Suspense>
         <form onSubmit={handleSearch} className="flex gap-4 mb-6">
           <div className="relative flex-grow">
             <Input
