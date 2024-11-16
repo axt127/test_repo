@@ -33,6 +33,19 @@ interface ItemDetail {
   boxId: string;
 }
 
+interface ViewPoItem {
+  line: number;
+  qtyReceived: string;
+  boxid?: string | number;
+}
+
+interface ViewPoItemAccumulator {
+  [key: number]: {
+    quantityReceived: number;
+    boxIds: Set<string | number>;
+  }
+}
+
 function Navigation() {
   const router = useRouter()
 
@@ -132,7 +145,6 @@ export default function ViewMaterialReceipt() {
     }
     setIsSearching(true)
     try {
-      // First, get the WR data to populate the MR info
       const wrResponse = await axios.get(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${searchQuery}`)
       console.log('WR Response:', wrResponse.data)
       if (wrResponse.status === 200 && Array.isArray(wrResponse.data) && wrResponse.data.length > 1) {
@@ -160,25 +172,19 @@ export default function ViewMaterialReceipt() {
 
         if (wrInfo[9]) {
           try {
-            // Fetch PO details using the new API
             const poResponse = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${wrInfo[9]}`)
             console.log('PO Response:', poResponse.data)
             
             if (poResponse.status === 200 && Array.isArray(poResponse.data) && poResponse.data.length > 2) {
               const [poHeader, itemCount, ...poItems] = poResponse.data
               
-              // Create a map of line number to PO item details
-              const poItemMap = new Map(poItems.map(item => [item[2], item]))
-              
-              // Fetch ViewPo details for quantity received and boxID
               const viewPoResponse = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/ViewPo?wr_po=${wrInfo[9]}`)
               console.log('ViewPo Response:', viewPoResponse.data)
               
               if (viewPoResponse.status === 200 && viewPoResponse.data.body) {
-                const viewPoItems = JSON.parse(viewPoResponse.data.body)
+                const viewPoItems: ViewPoItem[] = JSON.parse(viewPoResponse.data.body)
                 
-                // Create a map of line number to ViewPo item details
-                const viewPoItemMap = viewPoItems.reduce((acc, item) => {
+                const viewPoItemMap = viewPoItems.reduce<ViewPoItemAccumulator>((acc, item) => {
                   if (!acc[item.line]) {
                     acc[item.line] = { quantityReceived: 0, boxIds: new Set() }
                   }
@@ -187,7 +193,6 @@ export default function ViewMaterialReceipt() {
                   return acc
                 }, {})
                 
-                // Combine data from both APIs to create the final item details
                 const formattedItemDetails = poItems.map((poItem: any) => {
                   const lineNumber = poItem[2]
                   const viewPoItem = viewPoItemMap[lineNumber] || { quantityReceived: 0, boxIds: new Set() }
@@ -246,7 +251,6 @@ export default function ViewMaterialReceipt() {
       const response = await axios.delete(`https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/DeleteMR?wr_id=${searchQuery}`)
       if (response.status === 200) {
         toast.success('Material Receipt deleted successfully')
-        // Reset the form and clear the displayed data
         setSearchQuery('')
         setMRInfo({
           warehouseNumber: '',
