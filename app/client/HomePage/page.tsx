@@ -1,5 +1,6 @@
 'use client';
 
+// Import necessary dependencies and components
 import React, { useState, useEffect, KeyboardEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,14 +19,17 @@ import {
 import axios from 'axios';
 import { useClient } from '../../ClientContext';
 
+// Define types for receipt data
 type ReceiptData = [string, string, boolean];
 
+// Define interface for navigation items
 interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<any>;
 }
 
+// Define navigation items
 const navItems: NavItem[] = [
   { href: '/client/HomePage', label: 'Home', icon: Home },
   { href: '/client/HomePage/WR', label: 'Warehouse Receipt', icon: FileText },
@@ -33,15 +37,18 @@ const navItems: NavItem[] = [
   { href: '/client/HomePage/MR', label: 'Material Receipt', icon: Package },
 ];
 
+// Navigation component
 function Navigation({ handleLogout, clientName }: { handleLogout: () => void; clientName: string }): JSX.Element {
   return (
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo and app name */}
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
             <span className="text-xl font-bold">WMS Xpress</span>
           </div>
+          {/* Navigation buttons */}
           <div className="flex justify-center space-x-1">
             {navItems.map((item) => {
               const IconComponent = item.icon;
@@ -59,6 +66,7 @@ function Navigation({ handleLogout, clientName }: { handleLogout: () => void; cl
               );
             })}
           </div>
+          {/* Client name and logout button */}
           <div className="flex items-center space-x-4">
             <span className="text-sm">Client: {clientName}</span>
             <Button onClick={handleLogout} className="flex items-center" variant="secondary">
@@ -72,6 +80,7 @@ function Navigation({ handleLogout, clientName }: { handleLogout: () => void; cl
   );
 }
 
+// Main Homepage component
 export default function Homepage() {
   const router = useRouter();
   const { clientName } = useClient();
@@ -80,8 +89,9 @@ export default function Homepage() {
   const [filteredReceipts, setFilteredReceipts] = useState<ReceiptData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false); // Added searching state
+  const [isSearching, setIsSearching] = useState(false); 
 
+  // Fetch receipts on component mount
   useEffect(() => {
     const fetchRecentReceipts = async () => {
       setIsLoading(true);
@@ -105,12 +115,14 @@ export default function Homepage() {
     }
   }, [clientName]);
 
+  // Handle logout
   const handleLogout = () => {
     router.push('/login');
   };
 
+  // Handle search
   const handleSearch = () => {
-    setIsSearching(true); // Set isSearching to true before search
+    setIsSearching(true); 
     if (searchTerm === '') {
       setFilteredReceipts(receipts);
     } else {
@@ -121,9 +133,10 @@ export default function Homepage() {
       );
       setFilteredReceipts(filtered);
     }
-    setTimeout(() => setIsSearching(false), 500); // Reset after 500ms for visual feedback
+    setTimeout(() => setIsSearching(false), 500); 
   };
 
+  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
@@ -139,6 +152,7 @@ export default function Homepage() {
     }
   };
 
+  // Handle key down events
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSearch();
@@ -147,6 +161,7 @@ export default function Homepage() {
     }
   };
 
+  // Handle clear search
   const handleClear = () => {
     setSearchTerm('');
     setFilteredReceipts(receipts);
@@ -154,11 +169,14 @@ export default function Homepage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navigation component */}
       <Navigation handleLogout={handleLogout} clientName={clientName} />
       <div className="container mx-auto px-4 py-8 relative">
+        {/* Welcome message */}
         <h1 className="text-2xl font-bold mb-6 text-center">
           Welcome to WMS Xpress, {clientName}!
         </h1>
+        {/* Search input and button */}
         <div className="flex gap-4 mb-6 max-w-3xl mx-auto">
           <div className="relative flex-grow">
             <Input
@@ -180,12 +198,13 @@ export default function Homepage() {
               </button>
             )}
           </div>
-          <Button onClick={handleSearch} className="flex-shrink-0" disabled={isSearching}> {/* Updated Button */}
+          <Button onClick={handleSearch} className="flex-shrink-0" disabled={isSearching}>
             <Search className="mr-2 h-4 w-4" />
-            {isSearching ? 'Searching...' : 'Search'} {/* Conditional rendering */}
+            {isSearching ? 'Searching...' : 'Search'}
           </Button>
         </div>
 
+        {/* Table of receipts */}
         <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8 max-w-3xl mx-auto">
           <Table>
             <TableHeader>

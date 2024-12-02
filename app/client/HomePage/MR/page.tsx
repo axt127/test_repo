@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { X, Home, FileText, ShoppingCart, Package, LogOut } from 'lucide-react'
 import { useClient } from '@/app/ClientContext'
 
+// Define interface for MaterialReceipt
 interface MaterialReceipt {
   mrId: string;
   enteredBy: string;
@@ -22,6 +23,7 @@ interface MaterialReceipt {
   }[];
 }
 
+// Navigation component
 function Navigation({ handleLogout, clientName }: { handleLogout: () => void; clientName: string }) {
   return (
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
@@ -59,6 +61,7 @@ function Navigation({ handleLogout, clientName }: { handleLogout: () => void; cl
   )
 }
 
+// Main content component for Material Receipt Viewer
 function MaterialReceiptViewerContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -69,6 +72,7 @@ function MaterialReceiptViewerContent() {
   const [hasSearched, setHasSearched] = useState(false)
   const { clientName } = useClient()
 
+  // Function to fetch material receipt data
   const fetchMaterialReceipt = useCallback(async (mrNumber: string) => {
     setIsLoading(true)
     setError(null)
@@ -103,6 +107,7 @@ function MaterialReceiptViewerContent() {
     }
   }, [])
 
+  // Effect to handle initial search from URL params
   useEffect(() => {
     const mrNumber = searchParams.get('mrNumber')
     if (mrNumber) {
@@ -111,10 +116,12 @@ function MaterialReceiptViewerContent() {
     }
   }, [searchParams, fetchMaterialReceipt])
 
+  // Handle input change in search box
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
 
+  // Handle search form submission
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (searchTerm.trim()) {
@@ -122,6 +129,7 @@ function MaterialReceiptViewerContent() {
     }
   }
 
+  // Clear search and reset state
   const handleClear = () => {
     setSearchTerm('')
     setMaterialReceipt(null)
@@ -129,6 +137,7 @@ function MaterialReceiptViewerContent() {
     setHasSearched(false)
   }
 
+  // Handle logout
   const handleLogout = () => {
     router.push('/login')
   }
@@ -285,6 +294,8 @@ function MaterialReceiptViewerContent() {
     </div>
   )
 }
+
+// Main component with Suspense wrapper
 export default function MaterialReceiptViewer() {
   return (
     <Suspense fallback={<div>Loading...</div>}>

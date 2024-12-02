@@ -11,6 +11,7 @@ import { X, Home, FileText, ShoppingCart, Package, LogOut } from 'lucide-react'
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { useClient } from '@/app/ClientContext'
 
+// Define the structure for a Warehouse Receipt
 interface WarehouseReceipt {
   wrNumber: string;
   client: string;
@@ -33,6 +34,7 @@ interface WarehouseReceipt {
   images: string[];
 }
 
+// Navigation component
 function Navigation({ handleLogout, clientName }: { handleLogout: () => void; clientName: string }) {
   return (
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
@@ -70,6 +72,7 @@ function Navigation({ handleLogout, clientName }: { handleLogout: () => void; cl
   )
 }
 
+// SearchComponent to handle URL parameter-based search
 function SearchComponent({ onSearch }: { onSearch: (wrNumber: string) => void }) {
   const searchParams = useSearchParams()
   const wrNumber = searchParams.get('wrNumber')
@@ -83,6 +86,7 @@ function SearchComponent({ onSearch }: { onSearch: (wrNumber: string) => void })
   return null
 }
 
+// Main WarehouseReceiptViewer component
 export default function WarehouseReceiptViewer() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
@@ -92,6 +96,7 @@ export default function WarehouseReceiptViewer() {
   const [hasSearched, setHasSearched] = useState(false)
   const { clientName } = useClient()
 
+  // Function to fetch warehouse receipt data
   const fetchWarehouseReceipt = useCallback(async (wrNumber: string) => {
     setIsLoading(true)
     setError(null)
@@ -140,10 +145,12 @@ export default function WarehouseReceiptViewer() {
     }
   }, [])
 
+  // Handle input change in search box
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
 
+  // Handle search form submission
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (searchTerm.trim()) {
@@ -151,6 +158,7 @@ export default function WarehouseReceiptViewer() {
     }
   }
 
+  // Clear search and reset state
   const handleClear = () => {
     setSearchTerm('')
     setWarehouseReceipt(null)
@@ -158,16 +166,19 @@ export default function WarehouseReceiptViewer() {
     setHasSearched(false)
   }
 
+  // Handle keydown events in search input
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && searchTerm === '' && warehouseReceipt) {
       handleClear()
     }
   }
 
+  // Handle logout
   const handleLogout = () => {
     router.push('/login')
   }
 
+  // Render input fields
   const renderInput = (label: string, value: string, id: string) => (
     <div>
       <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor={id}>

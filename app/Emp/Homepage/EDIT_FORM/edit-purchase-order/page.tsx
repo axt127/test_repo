@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
+// Define interfaces for type checking
 interface Item {
   itemNumber: string
   partNumber: string
@@ -35,6 +36,7 @@ interface POInfo {
   notes: string
 }
 
+// Navigation component
 function Navigation() {
   const router = useRouter()
 
@@ -46,10 +48,12 @@ function Navigation() {
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo and company name */}
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
             <span className="text-xl font-bold">WMS Xpress</span>
           </div>
+          {/* Navigation links */}
           <div className="flex justify-center space-x-1">
             {[
               { href: "/Emp/Homepage", label: "Home", icon: Home },
@@ -69,6 +73,7 @@ function Navigation() {
               </Link>
             ))}
           </div>
+          {/* Logout button */}
           <Button 
             onClick={handleLogout}
             className="flex items-center"
@@ -83,7 +88,9 @@ function Navigation() {
   )
 }
 
+// Main EditPurchaseOrder component
 export default function EditPurchaseOrder() {
+  // State variables
   const [searchQuery, setSearchQuery] = useState('')
   const [allPoNumbers, setAllPoNumbers] = useState<string[]>([])
   const [filteredPoNumbers, setFilteredPoNumbers] = useState<string[]>([])
@@ -102,11 +109,13 @@ export default function EditPurchaseOrder() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
 
+  // Fetch all PO numbers and clients on component mount
   useEffect(() => {
     fetchAllPoNumbers()
     fetchClients()
   }, [])
 
+  // Filter PO numbers based on search query
   useEffect(() => {
     if (searchQuery) {
       const filtered = allPoNumbers.filter(id => id.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -116,6 +125,7 @@ export default function EditPurchaseOrder() {
     }
   }, [searchQuery, allPoNumbers])
 
+  // Fetch all PO numbers
   const fetchAllPoNumbers = async () => {
     try {
       const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-POs')
@@ -128,6 +138,7 @@ export default function EditPurchaseOrder() {
     }
   }
 
+  // Fetch all clients
   const fetchClients = async () => {
     try {
       const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-clients')
@@ -138,6 +149,7 @@ export default function EditPurchaseOrder() {
     }
   }
 
+  // Fetch destinations for a specific client
   const fetchDestinations = async (client: string) => {
     try {
       const response = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getalldestinationsforclient?client=${client}`)
@@ -148,6 +160,7 @@ export default function EditPurchaseOrder() {
     }
   }
 
+  // Handle search form submission
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     setFilteredPoNumbers([]) // Clear the dropdown
@@ -160,6 +173,7 @@ export default function EditPurchaseOrder() {
       const response = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${searchQuery}`)
       if (response.status === 200 && response.data) {
         const [generalInfo, itemCount, ...itemsData] = response.data
+        // Set PO information
         setPOInfo({
           poNumber: generalInfo[0],
           destination: generalInfo[1],
@@ -169,6 +183,7 @@ export default function EditPurchaseOrder() {
           client: generalInfo[5],
           date: new Date().toISOString().split('T')[0], // Set to current date as it's not provided in the API response
         })
+        // Set items
         setItems(itemsData.map((item: any[], index: number) => ({
           itemNumber: (index + 1).toString(),
           partNumber: item[3],
@@ -186,6 +201,7 @@ export default function EditPurchaseOrder() {
     }
   }
 
+  // Handle changes in PO information
   const handlePOInfoChange = (name: string, value: string) => {
     setPOInfo({ ...poInfo, [name]: value })
     if (name === 'client') {
@@ -193,18 +209,21 @@ export default function EditPurchaseOrder() {
     }
   }
 
+  // Handle changes in item details
   const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [e.target.name]: e.target.value }
     setItems(newItems)
   }
 
+  // Add a new item to the PO
   const addItem = () => {
     const newItemNumber = (items.length + 1).toString()
     setItems([...items, { itemNumber: newItemNumber, partNumber: '', description: '', quantity: 0, costPerUnit: 0 }])
     toast.info('New item added to the purchase order.')
   }
 
+  // Remove an item from the PO
   const removeItem = (index: number) => {
     const newItems = items.filter((_, i) => i !== index).map((item, i) => ({
       ...item,
@@ -214,10 +233,12 @@ export default function EditPurchaseOrder() {
     toast.warn('Item removed from the purchase order.')
   }
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
+    // Prepare data for API
     const poData = [
       [
         poInfo.poNumber,
@@ -250,6 +271,7 @@ export default function EditPurchaseOrder() {
     }
   }
 
+  // Handle key press events for adding new items
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === 'Tab' && !e.shiftKey && index === items.length - 1) {
       e.preventDefault()
@@ -262,6 +284,7 @@ export default function EditPurchaseOrder() {
     }
   }
 
+  // Calculate total cost of all items
   const totalCost = items.reduce((sum, item) => sum + item.quantity * item.costPerUnit, 0)
 
   return (
@@ -270,6 +293,7 @@ export default function EditPurchaseOrder() {
       <div className="container mx-auto px-4 py-8 space-y-6">
         <h1 className="text-3xl font-bold text-primary mb-6">Edit Purchase Order</h1>
         
+        {/* Search form */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Search Purchase Order</CardTitle>
@@ -284,6 +308,7 @@ export default function EditPurchaseOrder() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full"
                 />
+                {/* Dropdown for filtered PO numbers */}
                 {filteredPoNumbers.length > 0 && (
                   <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-b-md shadow-lg max-h-60 overflow-y-auto">
                     {filteredPoNumbers.map((id) => (
@@ -309,8 +334,10 @@ export default function EditPurchaseOrder() {
           </CardContent>
         </Card>
 
+        {/* Display PO form if a PO is selected */}
         {poInfo.poNumber && (
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Purchase Order Information */}
             <Card>
               <CardHeader>
                 <CardTitle>Purchase Order Information</CardTitle>
@@ -371,6 +398,7 @@ export default function EditPurchaseOrder() {
               </CardContent>
             </Card>
 
+            {/* Items */}
             <Card>
               <CardHeader>
                 <CardTitle>Items</CardTitle>
@@ -476,3 +504,4 @@ export default function EditPurchaseOrder() {
     </div>
   )
 }
+

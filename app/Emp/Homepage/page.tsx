@@ -10,16 +10,20 @@ import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion } from "framer-motion"
 
+// Define the Client type
 type Client = string
 
+// Main EmployeeHomepage component
 export default function EmployeeHomepage() {
   const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
 
+  // Fetch clients when the component mounts
   useEffect(() => {
     fetchClients()
   }, [])
 
+  // Function to fetch clients from the API
   const fetchClients = async () => {
     try {
       const response = await fetch('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-clients')
@@ -30,19 +34,23 @@ export default function EmployeeHomepage() {
     }
   }
 
+  // Function to handle logout
   const handleLogout = () => {
     router.push('/login')
   }
 
+  // Navigation component
   function Navigation() {
     return (
       <nav className="bg-primary text-primary-foreground shadow-md mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+            {/* Logo and company name */}
             <div className="flex items-center space-x-2">
               <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
               <span className="text-xl font-bold">WMS Xpress</span>
             </div>
+            {/* Navigation links */}
             <div className="flex justify-center space-x-1">
               {[
                 { href: "/Emp/Homepage", label: "Home", icon: Home },
@@ -53,7 +61,6 @@ export default function EmployeeHomepage() {
                 { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
                 { href: "/Emp/Homepage/EDIT_FORM/view_po", label: "View PO", icon: Edit },
                 { href: "/Emp/Homepage/EDIT_FORM/view_mr", label: "View MR", icon: Edit },
-
               ].map((item) => (
                 <Link key={item.href} href={item.href}>
                   <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
@@ -63,6 +70,7 @@ export default function EmployeeHomepage() {
                 </Link>
               ))}
             </div>
+            {/* Logout button */}
             <Button 
               onClick={handleLogout}
               className="flex items-center"
@@ -80,6 +88,7 @@ export default function EmployeeHomepage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      {/* Main content with animation */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -88,6 +97,7 @@ export default function EmployeeHomepage() {
       >
         <h1 className="text-4xl font-bold mb-8 text-center text-primary">Employee Dashboard</h1>
         
+        {/* Client list card */}
         <Card className="w-full mb-8">
           <CardHeader>
             <CardTitle>All Clients</CardTitle>
@@ -124,3 +134,4 @@ export default function EmployeeHomepage() {
     </div>
   )
 }
+

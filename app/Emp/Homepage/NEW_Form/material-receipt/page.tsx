@@ -13,12 +13,14 @@ import autoTable from 'jspdf-autotable'
 import { UserOptions } from 'jspdf-autotable'
 import QRCode from 'qrcode'
 
+// Extend jsPDF type to include autoTable method
 declare module 'jspdf' {
   interface jsPDF {
     autoTable: (options: UserOptions) => jsPDF;
   }
 }
 
+// Navigation component
 function Navigation() {
   const router = useRouter()
 
@@ -30,10 +32,12 @@ function Navigation() {
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo and app name */}
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
             <span className="text-xl font-bold">WMS Xpress</span>
           </div>
+          {/* Navigation buttons */}
           <div className="flex justify-center space-x-1">
             {[
               { href: "/Emp/Homepage", label: "Home", icon: Home },
@@ -53,6 +57,7 @@ function Navigation() {
               </Link>
             ))}
           </div>
+          {/* Logout button */}
           <Button 
             onClick={handleLogout}
             className="flex items-center"
@@ -67,6 +72,7 @@ function Navigation() {
   )
 }
 
+// Interface for table row in box details
 interface TableRow {
   number: string;
   type: string;
@@ -77,6 +83,7 @@ interface TableRow {
   location: string;
 }
 
+// Interface for table row in item details
 interface AdditionalTableRow {
   itemNumber: string;
   partId: string;
@@ -87,8 +94,10 @@ interface AdditionalTableRow {
   boxId: string;
 }
 
+// Main MaterialReceipt component
 export default function MaterialReceipt() {
   const router = useRouter()
+  // State for form data
   const [formData, setFormData] = useState({
     warehouseNumber: '',
     client: '',
@@ -99,10 +108,12 @@ export default function MaterialReceipt() {
     enteredBy: ''
   })
 
+  // State for box details table
   const [tableData, setTableData] = useState<TableRow[]>([
     { number: '', type: '', length: '', width: '', height: '', weight: '', location: '' }
   ])
 
+  // State for item details table
   const [additionalTableData, setAdditionalTableData] = useState<AdditionalTableRow[]>([
     { itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }
   ])
@@ -110,6 +121,7 @@ export default function MaterialReceipt() {
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
+  // Handle input change for form fields
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -123,9 +135,11 @@ export default function MaterialReceipt() {
     }
   }
 
+  // Fetch warehouse data based on warehouse number
   const fetchWarehouseData = async (wrId: string) => {
     setIsLoading(true)
     try {
+      // Check if MR already exists for this WR
       const mrCheckResponse = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/getWRMRcheck?wr_id=${wrId}`)
       if (!mrCheckResponse.ok) {
         throw new Error('Failed to check MR status')
@@ -138,6 +152,7 @@ export default function MaterialReceipt() {
         return
       }
 
+      // Fetch WR data
       const response = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${wrId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch warehouse data')
@@ -147,6 +162,7 @@ export default function MaterialReceipt() {
       if (data && data.length >= 3) {
         const [wrInfo, itemCount, ...items] = data
         
+        // Update form data with fetched information
         setFormData(prev => ({
           ...prev,
           client: wrInfo[1] || '',
@@ -156,6 +172,7 @@ export default function MaterialReceipt() {
           tracking: wrInfo[3] || ''
         }))
 
+        // Update box details table
         setTableData(items.map((item: any) => ({
           number: item[0] || '',
           type: item[1] || '',
@@ -166,6 +183,7 @@ export default function MaterialReceipt() {
           location: item[5] || ''
         })))
 
+        // If PO number is available, fetch PO data
         if (wrInfo[9]) {
           fetchPOData(wrInfo[9])
         }
@@ -178,6 +196,7 @@ export default function MaterialReceipt() {
     }
   }
 
+  // Fetch PO data based on PO number
   const fetchPOData = async (poNumber: string) => {
     setIsLoading(true)
     try {
@@ -190,6 +209,7 @@ export default function MaterialReceipt() {
       if (data && data.length >= 3) {
         const [poInfo, itemCount, ...items] = data
         
+        // Update item details table
         setAdditionalTableData(items.map((item: any) => ({
           itemNumber: item[2]?.toString() || '',
           partId: item[3] || '',
@@ -208,6 +228,7 @@ export default function MaterialReceipt() {
     }
   }
 
+  // Handle input change for table cells
   const handleTableInputChange = (index: number, field: string, value: string, isAdditional: boolean = false) => {
     if (isAdditional) {
       const newData = [...additionalTableData]
@@ -222,6 +243,7 @@ export default function MaterialReceipt() {
     setErrors(prev => ({ ...prev, [isAdditional ? 'additionalTable' : 'table']: '' }))
   }
 
+  // Add a new row to the table
   const handleAddRow = (isAdditional: boolean = false) => {
     if (isAdditional) {
       setAdditionalTableData([...additionalTableData, { itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }])
@@ -230,6 +252,7 @@ export default function MaterialReceipt() {
     }
   }
 
+  // Delete a row from the table
   const handleDeleteRow = (index: number, isAdditional: boolean = false) => {
     if (isAdditional) {
       setAdditionalTableData(additionalTableData.filter((_, i) => i !== index))
@@ -238,6 +261,7 @@ export default function MaterialReceipt() {
     }
   }
 
+  // Handle key down event for table inputs
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: string, isAdditional: boolean = false) => {
     if (e.key === 'Tab' && !e.shiftKey && 
         index === (isAdditional ? additionalTableData.length : tableData.length) - 1 && 
@@ -252,11 +276,13 @@ export default function MaterialReceipt() {
     }
   }
 
+  // Generate PDF for the material receipt
   const generatePDF = async () => {
     console.log('Generating PDF...')
     try {
       const doc = new jsPDF()
     
+      // Set document properties
       doc.setProperties({
         title: `Material Receipt - ${formData.warehouseNumber}`,
         subject: 'Material Receipt',
@@ -265,6 +291,7 @@ export default function MaterialReceipt() {
         creator: 'WMS Express System'
       })
 
+      // Add QR code
       try {
         const qrCodeDataUrl = await QRCode.toDataURL(formData.warehouseNumber)
         doc.addImage(qrCodeDataUrl, 'PNG', 170, 10, 30, 30)
@@ -274,14 +301,17 @@ export default function MaterialReceipt() {
         doc.text(`WR: ${formData.warehouseNumber}`, 170, 20)
       }
 
+      // Add title
       doc.setFontSize(24)
       doc.setTextColor(44, 62, 80)
       doc.text('Material Receipt', 50, 30)
 
+      // Add horizontal line
       doc.setDrawColor(52, 152, 219)
       doc.setLineWidth(0.5)
       doc.line(14, 45, 196, 45)
 
+      // Add form data
       doc.setFontSize(12)
       doc.setTextColor(0, 0, 0)
 
@@ -308,6 +338,7 @@ export default function MaterialReceipt() {
       addField("Carrier:", formData.carrier, rightColumnX)
       addField("Tracking Number:", formData.tracking, rightColumnX)
 
+      // Add box details table
       yPosition += 20
       autoTable(doc, {
         startY: yPosition,
@@ -322,6 +353,7 @@ export default function MaterialReceipt() {
         },
       })
 
+      // Add item details table
       const lastAutoTable = (doc as any).lastAutoTable
       yPosition = lastAutoTable ? lastAutoTable.finalY + 20 : yPosition + 20
       autoTable(doc, {
@@ -337,6 +369,7 @@ export default function MaterialReceipt() {
         },
       })
 
+      // Add page numbers
       const pageCount = doc.getNumberOfPages()
       doc.setFont("helvetica", "italic")
       doc.setFontSize(10)
@@ -350,6 +383,7 @@ export default function MaterialReceipt() {
         )
       }
     
+      // Save the PDF
       doc.save(`material_receipt_${formData.warehouseNumber}.pdf`)
       console.log('PDF generated and saved successfully')
       toast.success('PDF generated and downloaded successfully.')
@@ -359,6 +393,7 @@ export default function MaterialReceipt() {
     }
   }
 
+  // Validate form before submission
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {}
 
@@ -377,6 +412,7 @@ export default function MaterialReceipt() {
     return Object.keys(newErrors).length === 0
   }
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) {
@@ -426,6 +462,7 @@ export default function MaterialReceipt() {
     }
   }
 
+  // Reset form to initial state
   const resetForm = () => {
     setFormData({
       warehouseNumber: '',
@@ -440,6 +477,7 @@ export default function MaterialReceipt() {
     setAdditionalTableData([{ itemNumber: '', partId: '', description: '', quantityOrder: '', quantityReceived: '', quantity: '', boxId: '' }])
   }
 
+  // Log table data changes (for debugging)
   useEffect(() => {
     console.log('Table Data Updated:', tableData)
     console.log('Additional Table Data Updated:', additionalTableData)
@@ -454,6 +492,7 @@ export default function MaterialReceipt() {
         </div>
         <form onSubmit={handleSubmit} className="bg-card shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div className="grid grid-cols-2 gap-4 mb-4">
+            {/* Warehouse Number input */}
             <div>
               <label className="block text-sm font-medium mb-2" htmlFor="warehouseNumber">
                 Warehouse Number
@@ -468,6 +507,7 @@ export default function MaterialReceipt() {
               />
               {errors.warehouseNumber && <p className="text-red-500 text-xs italic">{errors.warehouseNumber}</p>}
             </div>
+            {/* Entered By input */}
             <div>
               <label className="block text-sm font-medium mb-2" htmlFor="enteredBy">
                 Entered by
@@ -482,6 +522,7 @@ export default function MaterialReceipt() {
               />
               {errors.enteredBy && <p className="text-red-500 text-xs italic">{errors.enteredBy}</p>}
             </div>
+            {/* Client input (read-only) */}
             <div>
               <label className="block text-sm font-medium mb-2" htmlFor="client">
                 Client
@@ -496,6 +537,7 @@ export default function MaterialReceipt() {
                 readOnly
               />
             </div>
+            {/* Receipt Date input (read-only) */}
             <div>
               <label className="block text-sm font-medium mb-2" htmlFor="receiptDate">
                 Receipt Date Received
@@ -510,6 +552,7 @@ export default function MaterialReceipt() {
                 readOnly
               />
             </div>
+            {/* PO input (read-only) */}
             <div>
               <label className="block text-sm font-medium mb-2" htmlFor="po">
                 PO
@@ -524,6 +567,7 @@ export default function MaterialReceipt() {
                 readOnly
               />
             </div>
+            {/* Carrier input (read-only) */}
             <div>
               <label className="block text-sm font-medium mb-2" htmlFor="carrier">
                 Carrier
@@ -538,6 +582,7 @@ export default function MaterialReceipt() {
                 readOnly
               />
             </div>
+            {/* Tracking input (read-only) */}
             <div>
               <label className="block text-sm font-medium mb-2" htmlFor="tracking">
                 Tracking #
@@ -557,6 +602,7 @@ export default function MaterialReceipt() {
             <div className="text-center py-4">Loading...</div>
           ) : (
             <>
+              {/* Box Details Table */}
               <table className="w-full mb-4">
                 <thead>
                   <tr>
@@ -606,6 +652,7 @@ export default function MaterialReceipt() {
                 </Button>
               </div>
               
+              {/* Item Details Table */}
               <table className="w-full mb-4">
                 <thead>
                   <tr>
@@ -656,6 +703,7 @@ export default function MaterialReceipt() {
                 </Button>
               </div>
               
+              {/* Submit button */}
               <div className="flex items-center justify-end">
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? 'Submitting...' : 'Submit'}

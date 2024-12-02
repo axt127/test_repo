@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { LogOut, Home, FileText, ShoppingCart, Package, Search, ArrowLeft, Edit } from 'lucide-react'
 
+// Define interfaces for data structures
 interface Notification {
   type: 'success' | 'error';
   message: string;
@@ -58,6 +59,7 @@ interface Shipment {
   dateShipped: string;
 }
 
+// Navigation component
 function Navigation() {
   const router = useRouter()
 
@@ -106,6 +108,7 @@ function Navigation() {
   )
 }
 
+// Main PurchaseOrderStatus component
 export default function PurchaseOrderStatus() {
   const [notification, setNotification] = useState<Notification | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -116,10 +119,12 @@ export default function PurchaseOrderStatus() {
   const [activeTab, setActiveTab] = useState('general')
   const router = useRouter()
 
+  // Fetch all PO numbers on component mount
   useEffect(() => {
     fetchAllPoNumbers()
   }, [])
 
+  // Filter PO numbers based on search query
   useEffect(() => {
     if (searchQuery) {
       const filtered = allPoNumbers.filter(id => id.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -129,6 +134,7 @@ export default function PurchaseOrderStatus() {
     }
   }, [searchQuery, allPoNumbers])
 
+  // Fetch all PO numbers from API
   const fetchAllPoNumbers = async () => {
     try {
       const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-POs')
@@ -141,6 +147,7 @@ export default function PurchaseOrderStatus() {
     }
   }
 
+  // Handle search form submission
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSearching(true)
@@ -148,6 +155,7 @@ export default function PurchaseOrderStatus() {
     setSearchResult(null)
 
     try {
+      // Fetch PO data
       const poResponse = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${searchQuery}`)
       if (poResponse.status === 200 && poResponse.data) {
         const [generalInfo, itemCount, ...items] = poResponse.data
@@ -157,6 +165,7 @@ export default function PurchaseOrderStatus() {
           const receiptsResponse = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/ViewPo?wr_po=${searchQuery}`)
           const receiptsData = JSON.parse(receiptsResponse.data.body)
 
+          // Parse items data
           const parsedItems = items.map((item: any[]) => ({
             client: item[0],
             poNumber: item[1],
@@ -168,6 +177,7 @@ export default function PurchaseOrderStatus() {
             quantityReceived: item[7]
           }))
 
+          // Parse receipts data and match with items
           const parsedReceipts = receiptsData.map((receipt: any) => {
             const matchingItem = parsedItems.find((item: POItem) => item.line === parseInt(receipt.line, 10))
             return {
@@ -180,6 +190,7 @@ export default function PurchaseOrderStatus() {
           console.log('Parsed Items:', parsedItems);
           console.log('Parsed Receipts:', parsedReceipts);
 
+          // Set search result with all fetched and parsed data
           const parsedResult: PurchaseOrder = {
             poNumber: generalInfo[0],
             destination: generalInfo[1],
@@ -228,6 +239,7 @@ export default function PurchaseOrderStatus() {
     }
   }
 
+  // Render content based on active tab
   const renderTabContent = () => {
     if (!searchResult) return null;
 

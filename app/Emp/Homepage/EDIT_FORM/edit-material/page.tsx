@@ -9,12 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { LogOut, Home, FileText, ShoppingCart, Package, Edit, Search, Trash2 } from 'lucide-react'
+import { LogOut, Home, FileText, ShoppingCart, Package, Edit, Search } from 'lucide-react'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import axios from 'axios'
 
-// Define interfaces for type checking
 interface BoxDetail {
   number: string;
   type: string;
@@ -34,20 +33,6 @@ interface ItemDetail {
   boxId: string;
 }
 
-interface ViewPoItem {
-  line: number;
-  qtyReceived: string;
-  boxid?: string | number;
-}
-
-interface ViewPoItemAccumulator {
-  [key: number]: {
-    quantityReceived: number;
-    boxIds: Set<string | number>;
-  }
-}
-
-// Navigation component
 function Navigation() {
   const router = useRouter()
 
@@ -59,12 +44,10 @@ function Navigation() {
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo and company name */}
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
-            <span className="text-xl font-bold">WMS Xpress</span>
+            <span className="text-xl font-bold">WMS Express</span>
           </div>
-          {/* Navigation links */}
           <div className="flex justify-center space-x-1">
             {[
               { href: "/Emp/Homepage", label: "Home", icon: Home },
@@ -73,8 +56,6 @@ function Navigation() {
               { href: "/Emp/Homepage/NEW_Form/material-receipt", label: "Material Receipt", icon: Package },
               { href: "/Emp/Homepage/EDIT_FORM/edit-warehouse", label: "Edit Warehouse", icon: Edit },
               { href: "/Emp/Homepage/EDIT_FORM/edit-purchase-order", label: "Edit PO", icon: Edit },
-              { href: "/Emp/Homepage/EDIT_FORM/view_po", label: "View PO", icon: Edit },
-              { href: "/Emp/Homepage/EDIT_FORM/view_mr", label: "View MR", icon: Edit },
             ].map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button variant="ghost" size="sm" className="flex flex-col items-center justify-center h-16 w-20">
@@ -84,7 +65,6 @@ function Navigation() {
               </Link>
             ))}
           </div>
-          {/* Logout button */}
           <Button 
             onClick={handleLogout}
             className="flex items-center"
@@ -99,9 +79,7 @@ function Navigation() {
   )
 }
 
-// Main ViewMaterialReceipt component
 export default function ViewMaterialReceipt() {
-  // State variables
   const [searchQuery, setSearchQuery] = useState('')
   const [allMRNumbers, setAllMRNumbers] = useState<string[]>([])
   const [filteredMRNumbers, setFilteredMRNumbers] = useState<string[]>([])
@@ -116,14 +94,11 @@ export default function ViewMaterialReceipt() {
   const [boxDetails, setBoxDetails] = useState<BoxDetail[]>([])
   const [itemDetails, setItemDetails] = useState<ItemDetail[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
 
-  // Fetch all MR numbers on component mount
   useEffect(() => {
     fetchAllMRNumbers()
   }, [])
 
-  // Filter MR numbers based on search query
   useEffect(() => {
     if (searchQuery) {
       const filtered = allMRNumbers.filter(id => id.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -133,7 +108,6 @@ export default function ViewMaterialReceipt() {
     }
   }, [searchQuery, allMRNumbers])
 
-  // Fetch all Material Receipt numbers
   const fetchAllMRNumbers = async () => {
     try {
       const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getallMR')
@@ -146,7 +120,6 @@ export default function ViewMaterialReceipt() {
     }
   }
 
-  // Handle search form submission
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     setFilteredMRNumbers([])
@@ -156,13 +129,12 @@ export default function ViewMaterialReceipt() {
     }
     setIsSearching(true)
     try {
-      // Fetch Warehouse Receipt data
+      // First, get the WR data to populate the MR info
       const wrResponse = await axios.get(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${searchQuery}`)
       console.log('WR Response:', wrResponse.data)
       if (wrResponse.status === 200 && Array.isArray(wrResponse.data) && wrResponse.data.length > 1) {
         const [wrInfo, boxCount, ...boxes] = wrResponse.data
         
-        // Set Material Receipt info
         setMRInfo({
           warehouseNumber: wrInfo[0] || '',
           client: wrInfo[1] || '',
@@ -172,7 +144,6 @@ export default function ViewMaterialReceipt() {
           tracking: wrInfo[3] || ''
         })
 
-        // Parse and set box details
         const parsedBoxDetails: BoxDetail[] = boxes.map((box: any) => ({
           number: box[0],
           type: box[1],
@@ -186,22 +157,25 @@ export default function ViewMaterialReceipt() {
 
         if (wrInfo[9]) {
           try {
-            // Fetch Purchase Order details
+            // Fetch PO details using the new API
             const poResponse = await axios.get(`https://kzxiymztu9.execute-api.us-east-1.amazonaws.com/prod/getPO?po=${wrInfo[9]}`)
             console.log('PO Response:', poResponse.data)
             
             if (poResponse.status === 200 && Array.isArray(poResponse.data) && poResponse.data.length > 2) {
               const [poHeader, itemCount, ...poItems] = poResponse.data
               
-              // Fetch ViewPo details
+              // Create a map of line number to PO item details
+              const poItemMap = new Map(poItems.map(item => [item[2], item]))
+              
+              // Fetch ViewPo details for quantity received and boxID
               const viewPoResponse = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/ViewPo?wr_po=${wrInfo[9]}`)
               console.log('ViewPo Response:', viewPoResponse.data)
               
               if (viewPoResponse.status === 200 && viewPoResponse.data.body) {
-                const viewPoItems: ViewPoItem[] = JSON.parse(viewPoResponse.data.body)
+                const viewPoItems = JSON.parse(viewPoResponse.data.body)
                 
                 // Create a map of line number to ViewPo item details
-                const viewPoItemMap = viewPoItems.reduce<ViewPoItemAccumulator>((acc, item) => {
+                const viewPoItemMap = viewPoItems.reduce((acc, item) => {
                   if (!acc[item.line]) {
                     acc[item.line] = { quantityReceived: 0, boxIds: new Set() }
                   }
@@ -258,46 +232,10 @@ export default function ViewMaterialReceipt() {
     }
   }
 
-  // Handle delete button click
-  const handleDelete = async () => {
-    if (!searchQuery) {
-      toast.error('Please search for a Material Receipt before deleting.')
-      return
-    }
-
-    setIsDeleting(true)
-    try {
-      const response = await axios.delete(`https://4n2oiwjde1.execute-api.us-east-1.amazonaws.com/prod/DeleteMR?wr_id=${searchQuery}`)
-      if (response.status === 200) {
-        toast.success('Material Receipt deleted successfully')
-        // Reset form and state after successful deletion
-        setSearchQuery('')
-        setMRInfo({
-          warehouseNumber: '',
-          client: '',
-          receiptDate: '',
-          po: '',
-          carrier: '',
-          tracking: ''
-        })
-        setBoxDetails([])
-        setItemDetails([])
-      } else {
-        toast.error('Failed to delete Material Receipt')
-      }
-    } catch (error) {
-      console.error('Error deleting Material Receipt:', error)
-      toast.error('An error occurred while deleting the Material Receipt')
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8 space-y-6">
-        {/* Search form */}
         <div className="flex flex-col items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-primary mb-4">View Material Receipt</h1>
           <form onSubmit={handleSearch} className="flex w-full max-w-3xl gap-2">
@@ -309,7 +247,6 @@ export default function ViewMaterialReceipt() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full"
               />
-              {/* Dropdown for filtered MR numbers */}
               {filteredMRNumbers.length > 0 && (
                 <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-b-md shadow-lg max-h-60 overflow-y-auto">
                   {filteredMRNumbers.map((id) => (
@@ -334,10 +271,8 @@ export default function ViewMaterialReceipt() {
           </form>
         </div>
 
-        {/* Display Material Receipt information if available */}
         {mrInfo.warehouseNumber && (
           <div className="space-y-6">
-            {/* Material Receipt Information Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Material Receipt Information</CardTitle>
@@ -372,7 +307,6 @@ export default function ViewMaterialReceipt() {
               </CardContent>
             </Card>
 
-            {/* Box Details Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Box Details</CardTitle>
@@ -407,7 +341,6 @@ export default function ViewMaterialReceipt() {
               </CardContent>
             </Card>
 
-            {/* Item Details Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Item Details</CardTitle>
@@ -439,19 +372,6 @@ export default function ViewMaterialReceipt() {
                 </Table>
               </CardContent>
             </Card>
-
-            {/* Delete Button */}
-            <div className="flex justify-center mt-6">
-              <Button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                variant="destructive"
-                className="flex items-center"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Material Receipt'}
-                <Trash2 className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
           </div>
         )}
       </div>
@@ -459,4 +379,3 @@ export default function ViewMaterialReceipt() {
     </div>
   )
 }
-

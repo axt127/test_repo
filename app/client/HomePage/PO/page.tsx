@@ -14,6 +14,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useClient } from '@/app/ClientContext'
 
+// Define interfaces for Item and POInfo
 interface Item {
   itemNumber?: number
   partNumber?: string
@@ -32,6 +33,7 @@ interface POInfo {
   client: string
 }
 
+// Navigation component
 function Navigation({ handleLogout, clientName }: { handleLogout: () => void; clientName: string }) {
   return (
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
@@ -69,6 +71,7 @@ function Navigation({ handleLogout, clientName }: { handleLogout: () => void; cl
   )
 }
 
+// SearchComponent for fetching and displaying purchase order details
 function SearchComponent() {
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
@@ -78,6 +81,7 @@ function SearchComponent() {
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
 
+  // Function to fetch purchase order data
   const fetchPurchaseOrder = useCallback(async (poNumber: string) => {
     setIsLoading(true)
     setError(null)
@@ -121,6 +125,7 @@ function SearchComponent() {
     }
   }, [])
 
+  // Effect to handle initial search from URL params
   useEffect(() => {
     const poNumber = searchParams.get('poNumber')
     if (poNumber) {
@@ -129,10 +134,12 @@ function SearchComponent() {
     }
   }, [searchParams, fetchPurchaseOrder])
 
+  // Handle input change in search box
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
   }
 
+  // Handle search form submission
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (searchTerm.trim()) {
@@ -140,6 +147,7 @@ function SearchComponent() {
     }
   }
 
+  // Clear search and reset state
   const handleClear = () => {
     setSearchTerm('')
     setPOInfo(null)
@@ -148,6 +156,7 @@ function SearchComponent() {
     setHasSearched(false)
   }
 
+  // Handle keydown events in search input
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && searchTerm === '' && poInfo) {
       handleClear()
@@ -157,6 +166,7 @@ function SearchComponent() {
   const inputClass = "w-full p-2 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 " + 
     (hasSearched ? "text-gray-700 bg-white border-gray-300" : "text-gray-400 bg-gray-100 border-gray-200")
 
+  // Calculate total cost of all items
   const totalCost = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.costPerUnit || 0)), 0)
 
   return (
@@ -298,6 +308,7 @@ function SearchComponent() {
   )
 }
 
+// Main PurchaseOrderViewer component
 export default function PurchaseOrderViewer() {
   const router = useRouter()
   const { clientName } = useClient()

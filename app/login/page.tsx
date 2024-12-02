@@ -14,6 +14,7 @@ import { CognitoUser, AuthenticationDetails, CognitoUserPool } from 'amazon-cogn
 import axios from 'axios'
 import { useClient } from '../ClientContext'
 
+// Configure Cognito User Pool
 const poolData = {
   UserPoolId: "us-east-1_dVmG7KZyD",
   ClientId: "q352maej1orc892dd55riiae4"
@@ -21,12 +22,14 @@ const poolData = {
 
 const userPool = new CognitoUserPool(poolData)
 
+// Define type for login inputs
 type LoginInputs = {
   username: string
   password: string
 }
 
 export default function Login() {
+  // State management
   const [inputs, setInputs] = useState<LoginInputs>({ username: '', password: '' })
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -35,37 +38,44 @@ export default function Login() {
   const router = useRouter()
   const { setClientName } = useClient()
 
+  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputs(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  // Handle login form submission
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setErrorMessage('')
     setSuccessMessage('')
 
+    // Create Cognito User instance
     const user = new CognitoUser({
       Username: inputs.username,
       Pool: userPool
     })
 
+    // Create Authentication Details
     const authDetails = new AuthenticationDetails({
       Username: inputs.username,
       Password: inputs.password
     })
 
+    // Authenticate user
     user.authenticateUser(authDetails, {
       onSuccess: async (data) => {
         console.log("Sign-in success:", data)
         setSuccessMessage('Login successful!')
         
         try {
+          // Check user type
           const response = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/login?username=${inputs.username}`)
           const userType = response.data
           
           setClientName(userType) // Set the client name in the context
           
+          // Redirect based on user type
           if (userType === 'employee') {
             router.push('/Emp/Homepage')
           } else {
@@ -151,3 +161,4 @@ export default function Login() {
     </div>
   )
 }
+

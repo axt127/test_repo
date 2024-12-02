@@ -11,13 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableRow, TableHeader } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
-// import { ScrollArea } from "@/components/ui/scroll-area"
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
+// Define interface for item in the purchase order
 interface Item {
   itemNumber: string
   partNumber: string
@@ -26,6 +26,7 @@ interface Item {
   costPerUnit: number
 }
 
+// Navigation component
 function Navigation() {
   const router = useRouter()
 
@@ -37,10 +38,12 @@ function Navigation() {
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo and app name */}
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
             <span className="text-xl font-bold">WMS Xpress</span>
           </div>
+          {/* Navigation buttons */}
           <div className="flex justify-center space-x-1">
             {[
               { href: "/Emp/Homepage", label: "Home", icon: Home },
@@ -60,6 +63,7 @@ function Navigation() {
               </Link>
             ))}
           </div>
+          {/* Logout button */}
           <Button 
             onClick={handleLogout}
             className="flex items-center"
@@ -74,7 +78,9 @@ function Navigation() {
   )
 }
 
+// Main PurchaseOrder component
 export default function PurchaseOrder() {
+  // State for PO information
   const [poInfo, setPOInfo] = useState({
     poNumber: '',
     client: '',
@@ -85,18 +91,22 @@ export default function PurchaseOrder() {
     notes: '',
   })
 
+  // State for items in the PO
   const [items, setItems] = useState<Item[]>([
     { itemNumber: '1', partNumber: '', description: '', quantity: 0, costPerUnit: 0 }
   ])
 
+  // State for clients and destinations
   const [clients, setClients] = useState<string[]>([])
   const [destinations, setDestinations] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Fetch clients on component mount
   useEffect(() => {
     fetchClients()
   }, [])
 
+  // Function to fetch clients
   const fetchClients = async () => {
     try {
       const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-clients')
@@ -107,6 +117,7 @@ export default function PurchaseOrder() {
     }
   }
 
+  // Function to fetch destinations for a client
   const fetchDestinations = async (client: string) => {
     try {
       const response = await axios.get(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/getalldestinationsforclient?client=${client}`)
@@ -117,6 +128,7 @@ export default function PurchaseOrder() {
     }
   }
 
+  // Handle changes in PO information
   const handlePOInfoChange = (name: string, value: string) => {
     setPOInfo({ ...poInfo, [name]: value })
     if (name === 'client') {
@@ -124,18 +136,21 @@ export default function PurchaseOrder() {
     }
   }
 
+  // Handle changes in item details
   const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [e.target.name]: e.target.value }
     setItems(newItems)
   }
 
+  // Add a new item to the PO
   const addItem = () => {
     const newItemNumber = (items.length + 1).toString()
     setItems([...items, { itemNumber: newItemNumber, partNumber: '', description: '', quantity: 0, costPerUnit: 0 }])
     toast.info('New item added to the purchase order.')
   }
 
+  // Remove an item from the PO
   const removeItem = (index: number) => {
     const newItems = items.filter((_, i) => i !== index).map((item, i) => ({
       ...item,
@@ -145,6 +160,7 @@ export default function PurchaseOrder() {
     toast.warn('Item removed from the purchase order.')
   }
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -193,6 +209,7 @@ export default function PurchaseOrder() {
     }
   }
 
+  // Calculate total cost of all items
   const totalCost = items.reduce((sum, item) => sum + item.quantity * item.costPerUnit, 0)
 
   return (
@@ -206,10 +223,12 @@ export default function PurchaseOrder() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4">
+              {/* PO Number input */}
               <div className="space-y-2">
                 <Label htmlFor="poNumber">PO Number</Label>
                 <Input id="poNumber" name="poNumber" value={poInfo.poNumber} onChange={(e) => handlePOInfoChange('poNumber', e.target.value)} required />
               </div>
+              {/* Client select */}
               <div className="space-y-2">
                 <Label htmlFor="client">Client</Label>
                 <Select onValueChange={(value) => handlePOInfoChange('client', value)}>
@@ -225,6 +244,7 @@ export default function PurchaseOrder() {
                   </SelectContent>
                 </Select>
               </div>
+              {/* Destination select */}
               <div className="space-y-2">
                 <Label htmlFor="destination">Destination</Label>
                 <Select onValueChange={(value) => handlePOInfoChange('destination', value)} disabled={!poInfo.client}>
@@ -240,19 +260,23 @@ export default function PurchaseOrder() {
                   </SelectContent>
                 </Select>
               </div>
+              {/* Vendor input */}
               <div className="space-y-2">
                 <Label htmlFor="vendor">Vendor</Label>
                 <Input id="vendor" name="vendor" value={poInfo.vendor} onChange={(e) => handlePOInfoChange('vendor', e.target.value)} required />
               </div>
+              {/* Ship Via input */}
               <div className="space-y-2">
                 <Label htmlFor="shipVia">Ship Via</Label>
                 <Input id="shipVia" name="shipVia" value={poInfo.shipVia} onChange={(e) => handlePOInfoChange('shipVia', e.target.value)} />
               </div>
+              {/* Date input */}
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input id="date" name="date" type="date" value={poInfo.date} onChange={(e) => handlePOInfoChange('date', e.target.value)} required />
               </div>
             </div>
+            {/* Notes textarea */}
             <div className="mt-4 space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea id="notes" name="notes" value={poInfo.notes} onChange={(e) => handlePOInfoChange('notes', e.target.value)} />
@@ -352,6 +376,7 @@ export default function PurchaseOrder() {
           </CardContent>
         </Card>
 
+        {/* Submit button */}
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           <Save className="mr-2 h-4 w-4" /> 
           {isSubmitting ? 'Submitting...' : 'Save Purchase Order'}

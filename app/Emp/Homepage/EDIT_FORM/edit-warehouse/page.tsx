@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { LogOut, Home, FileText, ShoppingCart, Package, Search, ArrowLeft, Save, Edit } from 'lucide-react'
 
+// Define interfaces for type checking
 interface Notification {
   type: 'success' | 'error';
   message: string;
@@ -39,6 +40,7 @@ interface WarehouseReceipt {
   images: string[];
 }
 
+// Navigation component
 function Navigation() {
   const router = useRouter()
 
@@ -50,10 +52,12 @@ function Navigation() {
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo and company name */}
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
             <span className="text-xl font-bold">WMS Xpress</span>
           </div>
+          {/* Navigation links */}
           <div className="flex justify-center space-x-1">
             {[
               { href: "/Emp/Homepage", label: "Home", icon: Home },
@@ -73,6 +77,7 @@ function Navigation() {
               </Link>
             ))}
           </div>
+          {/* Logout button */}
           <Button 
             onClick={handleLogout}
             className="flex items-center"
@@ -87,7 +92,9 @@ function Navigation() {
   )
 }
 
+// Main EditWarehouseReceipt component
 export default function EditWarehouseReceipt() {
+  // State variables
   const [notification, setNotification] = useState<Notification | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResult, setSearchResult] = useState<WarehouseReceipt | null>(null)
@@ -99,10 +106,12 @@ export default function EditWarehouseReceipt() {
   const [isUpdating, setIsUpdating] = useState(false)
   const router = useRouter()
 
+  // Fetch all WR IDs on component mount
   useEffect(() => {
     fetchAllWrIds()
   }, [])
 
+  // Filter WR IDs based on search query
   useEffect(() => {
     if (searchQuery) {
       const filtered = allWrIds.filter(id => id.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -112,6 +121,7 @@ export default function EditWarehouseReceipt() {
     }
   }, [searchQuery, allWrIds])
 
+  // Fetch all Warehouse Receipt IDs
   const fetchAllWrIds = async () => {
     try {
       const response = await axios.get('https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/all-wr-ids')
@@ -123,6 +133,7 @@ export default function EditWarehouseReceipt() {
     }
   }
 
+  // Handle search form submission
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSearching(true)
@@ -131,11 +142,13 @@ export default function EditWarehouseReceipt() {
     setIsEditing(false)
 
     try {
+      // Fetch Warehouse Receipt data
       const response = await axios.get(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${searchQuery}`)
       console.log('API Response:', response.data)
 
       if (response.status === 200 && response.data && Array.isArray(response.data)) {
         const [mainInfo, itemCount, ...items] = response.data
+        // Parse the response data
         const parsedResult: WarehouseReceipt = {
           wrNumber: mainInfo[0],
           client: mainInfo[1],
@@ -194,6 +207,7 @@ export default function EditWarehouseReceipt() {
     }
   }
 
+  // Handle save button click
   const handleSave = async () => {
     if (!editedReceipt) return
   
@@ -201,6 +215,7 @@ export default function EditWarehouseReceipt() {
     setNotification(null)
   
     try {
+      // Format data for API
       const formattedData = [
         [
           editedReceipt.wrNumber,
@@ -226,6 +241,7 @@ export default function EditWarehouseReceipt() {
   
       console.log('Sending data:', JSON.stringify(formattedData, null, 2));
   
+      // Send update request to API
       const response = await axios.put(
         'https://i86t4jbtki.execute-api.us-east-1.amazonaws.com/prod/updateWR',
         formattedData,
@@ -281,12 +297,14 @@ export default function EditWarehouseReceipt() {
     }
   }
 
+  // Handle input changes for main receipt fields
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, field: keyof WarehouseReceipt) => {
     if (editedReceipt) {
       setEditedReceipt({ ...editedReceipt, [field]: e.target.value })
     }
   }
 
+  // Handle input changes for item fields
   const handleItemChange = (e: React.ChangeEvent<HTMLInputElement>, index: number, field: keyof WarehouseReceipt['items'][0]) => {
     if (editedReceipt) {
       const updatedItems = [...editedReceipt.items]
@@ -313,11 +331,14 @@ export default function EditWarehouseReceipt() {
           </Button>
         </div>
 
+        {/* Notification display */}
         {notification && (
           <div className={`mb-4 p-4 rounded ${notification.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`} role="alert">
             {notification.message}
           </div>
         )}
+
+        {/* Search form */}
         <div className="mb-6">
           <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative flex-grow">
@@ -328,6 +349,7 @@ export default function EditWarehouseReceipt() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full"
               />
+              {/* Dropdown for filtered WR IDs */}
               {filteredWrIds.length > 0 && (
                 <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-b-md shadow-lg max-h-60 overflow-y-auto">
                   {filteredWrIds.map((id) => (
@@ -352,6 +374,7 @@ export default function EditWarehouseReceipt() {
           </form>
         </div>
 
+        {/* Display search result */}
         {searchResult && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -492,3 +515,4 @@ export default function EditWarehouseReceipt() {
     </div>
   )
 }
+

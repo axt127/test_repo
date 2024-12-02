@@ -11,6 +11,7 @@ import { motion } from "framer-motion"
 import Link from 'next/link'
 import Image from 'next/image'
 
+// Define types for Warehouse Receipt and its details
 type WarehouseReceipt = string
 
 type WRDetails = {
@@ -36,6 +37,7 @@ type WRDetails = {
   images: string[]
 }
 
+// Navigation component
 function Navigation() {
   const router = useRouter()
 
@@ -47,10 +49,12 @@ function Navigation() {
     <nav className="bg-primary text-primary-foreground shadow-md mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo and company name */}
           <div className="flex items-center space-x-2">
             <Image src="/wex.png" alt="Wex Logo" width={50} height={50} className="rounded-full" />
             <span className="text-xl font-bold">WMS Express</span>
           </div>
+          {/* Navigation links */}
           <div className="flex justify-center space-x-1">
             {[
               { href: "/Emp/Homepage", label: "Home", icon: Home },
@@ -70,6 +74,7 @@ function Navigation() {
               </Link>
             ))}
           </div>
+          {/* Logout button */}
           <Button 
             onClick={handleLogout}
             className="flex items-center"
@@ -84,17 +89,20 @@ function Navigation() {
   )
 }
 
+// Wrapper component to get client name from URL params
 function ClientNameWrapper({ children }: { children: (props: { clientName: string | null }) => React.ReactNode }) {
   const searchParams = useSearchParams()
   const clientName = searchParams.get('clientName')
   return children({ clientName })
 }
 
+// Main component for displaying client data
 function ClientData({ clientName }: { clientName: string | null }) {
   const router = useRouter()
   const [clientWRs, setClientWRs] = useState<WarehouseReceipt[]>([])
   const [selectedWR, setSelectedWR] = useState<WRDetails | null>(null)
 
+  // Fetch warehouse receipts for the client
   const fetchClientWRs = async () => {
     try {
       const response = await fetch(`https://327kl67ttg.execute-api.us-east-1.amazonaws.com/prod/GetWRforclient?client=${encodeURIComponent(clientName || '')}`)
@@ -105,15 +113,18 @@ function ClientData({ clientName }: { clientName: string | null }) {
     }
   }
 
+  // Fetch details for a specific warehouse receipt
   const fetchWRDetails = async (wrId: string) => {
     try {
       const response = await fetch(`https://qwlotlnq36.execute-api.us-east-1.amazonaws.com/prod/GetWR?wr_id=${encodeURIComponent(wrId)}`)
       const data = await response.json()
       const [details, itemCount, ...items] = data
 
+      // Fetch images for the warehouse receipt
       const imagesResponse = await fetch(`https://zol0yn9wc2.execute-api.us-east-1.amazonaws.com/prod/getPhoto?wr_id=${encodeURIComponent(wrId)}`)
       const imagesData = await imagesResponse.json()
 
+      // Set the selected warehouse receipt details
       setSelectedWR({
         id: details[0],
         client: details[1],
@@ -141,6 +152,7 @@ function ClientData({ clientName }: { clientName: string | null }) {
     }
   }
 
+  // Fetch client warehouse receipts when the component mounts or clientName changes
   useEffect(() => {
     if (clientName) {
       fetchClientWRs()
@@ -163,6 +175,7 @@ function ClientData({ clientName }: { clientName: string | null }) {
       </div>
       
       <div className="grid md:grid-cols-2 gap-8 mb-8">
+        {/* Warehouse Receipts Card */}
         <Card>
           <CardHeader>
             <CardTitle>Warehouse Receipts</CardTitle>
@@ -196,6 +209,7 @@ function ClientData({ clientName }: { clientName: string | null }) {
           </CardContent>
         </Card>
 
+        {/* Warehouse Receipt Details Card */}
         <Card>
           <CardHeader>
             <CardTitle>{selectedWR ? `Details for ${selectedWR.id}` : 'Select a Warehouse Receipt'}</CardTitle>
@@ -203,6 +217,7 @@ function ClientData({ clientName }: { clientName: string | null }) {
           <CardContent>
             {selectedWR ? (
               <div className="space-y-4">
+                {/* General Information */}
                 <div>
                   <h3 className="font-semibold">General Information</h3>
                   <Table>
@@ -246,6 +261,7 @@ function ClientData({ clientName }: { clientName: string | null }) {
                     </TableBody>
                   </Table>
                 </div>
+                {/* Items */}
                 <div>
                   <h3 className="font-semibold">Items</h3>
                   <Table>
@@ -271,6 +287,7 @@ function ClientData({ clientName }: { clientName: string | null }) {
                     </TableBody>
                   </Table>
                 </div>
+                {/* Images */}
                 <div>
                   <h3 className="font-semibold">Images</h3>
                   {selectedWR.images.length > 0 ? (
@@ -324,6 +341,7 @@ function ClientData({ clientName }: { clientName: string | null }) {
   )
 }
 
+// Main component that wraps everything
 export default function ClientDataPage() {
   return (
     <div className="min-h-screen bg-background">
@@ -336,3 +354,4 @@ export default function ClientDataPage() {
     </div>
   )
 }
+
